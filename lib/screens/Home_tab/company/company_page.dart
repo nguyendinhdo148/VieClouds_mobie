@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../models/company_model.dart';
-import '../../services/company_service.dart';
+import '../../../models/company_model.dart';
+import '../../../services/company_service.dart';
+import '../../home_tab/company/jobByCompany.dart';
+import '../../../services/auth_service.dart';
 
 class CompanyPage extends StatefulWidget {
   const CompanyPage({Key? key}) : super(key: key);
@@ -12,12 +14,14 @@ class CompanyPage extends StatefulWidget {
 
 class _CompanyPageState extends State<CompanyPage> {
   final CompanyService _companyService = CompanyService();
+  final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
   
   List<CompanyModel> _companies = [];
   List<CompanyModel> _filteredCompanies = [];
   bool _isLoading = true;
   bool _isSearching = false;
+  bool _isNavigating = false;
   String _errorMessage = '';
 
   @override
@@ -72,7 +76,7 @@ class _CompanyPageState extends State<CompanyPage> {
   }
 
   void _filterCompanies() {
-    final searchText = _searchController.text.toLowerCase();
+    final searchText = _searchController.text.toLowerCase().trim();
     
     setState(() {
       if (searchText.isEmpty) {
@@ -99,6 +103,88 @@ class _CompanyPageState extends State<CompanyPage> {
 
   void _refreshCompanies() {
     _loadCompanies();
+  }
+
+  Future<void> _navigateToCompanyJobs(CompanyModel company) async {
+    if (_isNavigating) return;
+    
+    // Kiểm tra đăng nhập trước khi vào màn hình công việc
+    final isLoggedIn = await _authService.isLoggedIn();
+    if (!isLoggedIn) {
+      if (mounted) {
+        _showLoginRequiredDialog();
+      }
+      return;
+    }
+
+    setState(() {
+      _isNavigating = true;
+    });
+
+    try {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => JobByCompanyScreen(
+            company: company,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi khi mở trang công việc: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isNavigating = false;
+        });
+      }
+    }
+  }
+
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Yêu cầu đăng nhập',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Bạn cần đăng nhập để xem công việc và ứng tuyển.',
+          style: GoogleFonts.inter(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Để sau',
+              style: GoogleFonts.inter(color: Colors.grey[600]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // TODO: Navigate to login screen
+              // Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[600],
+            ),
+            child: Text(
+              'Đăng nhập',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -212,17 +298,20 @@ class _CompanyPageState extends State<CompanyPage> {
 
           // Company List
           Expanded(
-            child: _isLoading && _companies.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredCompanies.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _filteredCompanies.length,
-                        itemBuilder: (context, index) {
-                          return _buildCompanyItem(_filteredCompanies[index]);
-                        },
-                      ),
+            child: RefreshIndicator(
+              onRefresh: _loadCompanies,
+              child: _isLoading && _companies.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredCompanies.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _filteredCompanies.length,
+                          itemBuilder: (context, index) {
+                            return _buildCompanyItem(_filteredCompanies[index]);
+                          },
+                        ),
+            ),
           ),
         ],
       ),
@@ -230,14 +319,20 @@ class _CompanyPageState extends State<CompanyPage> {
   }
 
   Widget _buildEmptyState() {
+    final hasSearchText = _searchController.text.isNotEmpty;
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.business_outlined, size: 80, color: Colors.grey[300]),
+          Icon(
+            hasSearchText ? Icons.search_off : Icons.business_outlined, 
+            size: 80, 
+            color: Colors.grey[300]
+          ),
           const SizedBox(height: 16),
           Text(
-            'Không tìm thấy công ty nào',
+            hasSearchText ? 'Không tìm thấy công ty phù hợp' : 'Không có công ty nào',
             style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -246,7 +341,9 @@ class _CompanyPageState extends State<CompanyPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Hãy thử thay đổi từ khóa tìm kiếm',
+            hasSearchText 
+                ? 'Hãy thử thay đổi từ khóa tìm kiếm'
+                : 'Hiện chưa có công ty nào trong hệ thống',
             style: GoogleFonts.inter(
               color: Colors.grey[500],
             ),
@@ -262,111 +359,132 @@ class _CompanyPageState extends State<CompanyPage> {
   }
 
   Widget _buildCompanyItem(CompanyModel company) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: () {
+        _navigateToCompanyJobs(company);
+      },
+      child: Stack(
         children: [
-          Row(
-            children: [
-              // Company Logo
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                  image: company.hasLogo
-                      ? DecorationImage(
-                          image: NetworkImage(company.logo!),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
-                child: company.hasLogo
-                    ? null
-                    : const Icon(Icons.business, color: Colors.blue, size: 30),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ],
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      company.name,
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                    // Company Logo
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                        image: company.hasLogo
+                            ? DecorationImage(
+                                image: NetworkImage(company.logo!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
                       ),
+                      child: company.hasLogo
+                          ? null
+                          : const Icon(Icons.business, color: Colors.blue, size: 30),
                     ),
-                    const SizedBox(height: 4),
-                    if (company.location != null)
-                      Row(
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.location_on, size: 14, color: Colors.grey),
-                          const SizedBox(width: 4),
                           Text(
-                            company.location!,
+                            company.name,
                             style: GoogleFonts.inter(
-                              color: Colors.grey[600],
-                              fontSize: 13,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          if (company.location != null)
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  company.location!,
+                                  style: GoogleFonts.inter(
+                                    color: Colors.grey[600],
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                      onPressed: () {
+                        _showCompanyDetail(company);
+                      },
+                    ),
                   ],
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                onPressed: () {
-                  _showCompanyDetail(company);
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          
-          // Company Description
-          if (company.description != null && company.description!.isNotEmpty)
-            Text(
-              company.shortDescription,
-              style: GoogleFonts.inter(
-                color: Colors.grey[600],
-                fontSize: 13,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 12),
+                
+                // Company Description
+                if (company.description != null && company.description!.isNotEmpty)
+                  Text(
+                    company.shortDescription,
+                    style: GoogleFonts.inter(
+                      color: Colors.grey[600],
+                      fontSize: 13,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                
+                const SizedBox(height: 12),
+                
+                // Company Details
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 8,
+                  children: [
+                    if (company.taxCode != null)
+                      _buildCompanyDetail('Mã số thuế: ${company.taxCode}'),
+                    if (company.website != null)
+                      _buildCompanyDetail('Website: ${company.formattedWebsite}'),
+                    if (company.hasBusinessLicense)
+                      _buildCompanyDetail('Đã xác thực', isVerified: true),
+                  ],
+                ),
+              ],
             ),
-          
-          const SizedBox(height: 12),
-          
-          // Company Details
-          Wrap(
-            spacing: 16,
-            runSpacing: 8,
-            children: [
-              if (company.taxCode != null)
-                _buildCompanyDetail('Mã số thuế: ${company.taxCode}'),
-              if (company.website != null)
-                _buildCompanyDetail('Website: ${company.formattedWebsite}'),
-              if (company.hasBusinessLicense)
-                _buildCompanyDetail('Đã xác thực', isVerified: true),
-            ],
           ),
+          if (_isNavigating)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -507,11 +625,30 @@ class _CompanyPageState extends State<CompanyPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Navigate to company jobs
+                  onPressed: () async {
                     Navigator.pop(context);
+                    await _navigateToCompanyJobs(company);
                   },
-                  child: const Text('Xem công việc của công ty'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: _isNavigating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          'Xem công việc của ${company.name}',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
               ),
             ],

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../services/job_service.dart';
-import '../../models/job_model.dart';
+import '../../../services/job_service.dart';
+import '../../../models/job_model.dart';
 
 class FindJobScreen extends StatefulWidget {
-  const FindJobScreen({Key? key}) : super(key: key);
+  const FindJobScreen({Key? key, required String initialSearch}) : super(key: key);
 
   @override
   State<FindJobScreen> createState() => _FindJobScreenState();

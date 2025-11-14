@@ -21,7 +21,6 @@ JobModel _$JobModelFromJson(Map<String, dynamic> json) => JobModel(
   location: json['location'] as String,
   jobType: json['jobType'] as String,
   position: (json['position'] as num).toInt(),
-  companyId: JobModel._parseCompanyId(json['company']),
   status: json['status'] as String,
   approval: json['approval'] as String,
   approvalNote: json['approvalNote'] as String,
@@ -36,6 +35,7 @@ JobModel _$JobModelFromJson(Map<String, dynamic> json) => JobModel(
   companyInfo: json['companyInfo'] == null
       ? null
       : CompanyModel.fromJson(json['companyInfo'] as Map<String, dynamic>),
+  companyData: JobModel._parseCompanyData(json['company']),
   createdByUser: json['createdByUser'] as Map<String, dynamic>?,
 );
 
@@ -50,7 +50,7 @@ Map<String, dynamic> _$JobModelToJson(JobModel instance) => <String, dynamic>{
   'location': instance.location,
   'jobType': instance.jobType,
   'position': instance.position,
-  'company': instance.companyId,
+  'company': instance.companyData,
   'status': instance.status,
   'approval': instance.approval,
   'approvalNote': instance.approvalNote,

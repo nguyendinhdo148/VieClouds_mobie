@@ -35,8 +35,9 @@ class JobModel {
   @JsonKey(name: 'position')
   final int position;
 
-  @JsonKey(name: 'company', fromJson: _parseCompanyId)
-  final String companyId;
+  // ✅ Chỉ giữ 1 field duy nhất để parse dữ liệu company (đã populate từ BE)
+  @JsonKey(name: 'company', fromJson: _parseCompanyData)
+  final Map<String, dynamic>? companyData;
 
   @JsonKey(name: 'status')
   final String status;
@@ -65,10 +66,8 @@ class JobModel {
   @JsonKey(name: 'updatedAt')
   final DateTime updatedAt;
 
-  // Company info (sẽ được populate từ API) - ĐỔI TÊN FIELD NÀY
+  // Optional info (không bị map trùng)
   final CompanyModel? companyInfo;
-
-  // User info (sẽ được populate từ API)
   final Map<String, dynamic>? createdByUser;
 
   JobModel({
@@ -82,7 +81,6 @@ class JobModel {
     required this.location,
     required this.jobType,
     required this.position,
-    required this.companyId,
     required this.status,
     required this.approval,
     required this.approvalNote,
@@ -93,6 +91,7 @@ class JobModel {
     required this.createdAt,
     required this.updatedAt,
     this.companyInfo,
+    this.companyData,
     this.createdByUser,
   });
 
@@ -101,40 +100,64 @@ class JobModel {
 
   Map<String, dynamic> toJson() => _$JobModelToJson(this);
 
-  // Helper method to parse company ID from various formats
-  static String _parseCompanyId(dynamic value) {
-    if (value == null) return '';
-    if (value is String) return value;
-    if (value is Map) {
-      // Handle populated company: { _id: "...", name: "...", ... }
-      return value['_id']?.toString() ?? '';
-    }
-    return value.toString();
-  }
+  // ======== PARSE METHODS ========
 
-  // Helper method to parse created_by from various formats
   static String _parseCreatedBy(dynamic value) {
     if (value == null) return '';
     if (value is String) return value;
-    if (value is Map) {
-      // Handle populated user: { _id: "...", fullname: "...", ... }
-      return value['_id']?.toString() ?? '';
-    }
+    if (value is Map) return value['_id']?.toString() ?? '';
     return value.toString();
   }
 
-  // Helper method to get formatted salary
-  String get formattedSalary {
-    if (salary == 0) return 'Thương lượng';
-    
-    if (salary >= 1000000) {
-      return '${(salary / 1000000).toStringAsFixed(0)} triệu';
-    } else {
-      return '${salary.toStringAsFixed(0)} VNĐ';
-    }
+  static Map<String, dynamic>? _parseCompanyData(dynamic value) {
+    if (value == null) return null;
+    if (value is Map) return value as Map<String, dynamic>;
+    return null;
   }
 
-  // Helper method to get experience level text
+  // ======== DERIVED GETTERS ========
+
+  /// ✅ Lấy companyId từ dữ liệu đã populate
+  String get companyId {
+    if (companyData == null) return '';
+    return companyData!['_id']?.toString() ?? '';
+  }
+
+  /// ✅ Lấy tên công ty hiển thị
+  String get companyName {
+    if (companyInfo?.name != null && companyInfo!.name.isNotEmpty) {
+      return companyInfo!.name;
+    }
+    if (companyData != null && companyData!['name'] != null) {
+      return companyData!['name'].toString();
+    }
+    return 'Công ty ẩn danh';
+  }
+
+  /// ✅ Lấy logo công ty
+  String? get companyLogo {
+    if (companyInfo?.logo != null && companyInfo!.logo!.isNotEmpty) {
+      return companyInfo!.logo;
+    }
+    if (companyData != null && companyData!['logo'] != null) {
+      return companyData!['logo'].toString();
+    }
+    return null;
+  }
+
+  /// ✅ Lấy trạng thái việc làm
+  bool get isActive => status == 'active' && approval == 'approved';
+
+  /// ✅ Hiển thị lương
+  String get formattedSalary {
+    if (salary == 0) return 'Thương lượng';
+    if (salary >= 1000000) {
+      return '${(salary / 1000000).toStringAsFixed(0)} triệu';
+    }
+    return '${salary.toStringAsFixed(0)} VNĐ';
+  }
+
+  /// ✅ Mức kinh nghiệm
   String get experienceText {
     switch (experienceLevel) {
       case 0:
@@ -154,33 +177,7 @@ class JobModel {
     }
   }
 
-  // Helper method to get time ago string
-  String get timeAgo {
-    final now = DateTime.now();
-    final difference = now.difference(createdAt);
-    
-    if (difference.inMinutes < 1) return 'Vừa xong';
-    if (difference.inHours < 1) return '${difference.inMinutes} phút trước';
-    if (difference.inDays < 1) return '${difference.inHours} giờ trước';
-    if (difference.inDays < 7) return '${difference.inDays} ngày trước';
-    if (difference.inDays < 30) return '${(difference.inDays / 7).floor()} tuần trước';
-    return '${(difference.inDays / 30).floor()} tháng trước';
-  }
-
-  // Check if job is active and approved
-  bool get isActive => status == 'active' && approval == 'approved';
-
-  // Get company name
-  String get companyName {
-    return companyInfo?.name ?? 'Công ty ẩn danh';
-  }
-
-  // Get company logo
-  String? get companyLogo {
-    return companyInfo?.logo;
-  }
-
-  // Get position title
+  /// ✅ Vị trí
   String get positionTitle {
     switch (position) {
       case 1:
@@ -200,7 +197,7 @@ class JobModel {
     }
   }
 
-  // Parse job type to Vietnamese
+  /// ✅ Kiểu công việc (dịch sang tiếng Việt)
   String get jobTypeText {
     switch (jobType.toLowerCase()) {
       case 'fulltime':
@@ -222,7 +219,7 @@ class JobModel {
     }
   }
 
-  // Get status text in Vietnamese
+  /// ✅ Hiển thị trạng thái việc làm
   String get statusText {
     switch (status) {
       case 'active':
@@ -236,7 +233,7 @@ class JobModel {
     }
   }
 
-  // Get approval status text in Vietnamese
+  /// ✅ Hiển thị trạng thái duyệt
   String get approvalText {
     switch (approval) {
       case 'pending':
@@ -250,12 +247,22 @@ class JobModel {
     }
   }
 
-  // Check if job is urgent (new job within 3 days)
-  bool get isUrgent {
-    return createdAt.difference(DateTime.now()).inDays.abs() <= 3;
+  /// ✅ Thời gian đăng tin
+  String get timeAgo {
+    final now = DateTime.now();
+    final diff = now.difference(createdAt);
+    if (diff.inMinutes < 1) return 'Vừa xong';
+    if (diff.inHours < 1) return '${diff.inMinutes} phút trước';
+    if (diff.inDays < 1) return '${diff.inHours} giờ trước';
+    if (diff.inDays < 7) return '${diff.inDays} ngày trước';
+    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} tuần trước';
+    return '${(diff.inDays / 30).floor()} tháng trước';
   }
 
-  // Get creator name
+  /// ✅ Kiểm tra job mới (<=3 ngày)
+  bool get isUrgent => createdAt.difference(DateTime.now()).inDays.abs() <= 3;
+
+  /// ✅ Lấy tên người tạo
   String get creatorName {
     if (createdByUser != null) {
       return createdByUser?['fullname'] ?? createdByUser?['name'] ?? 'Ẩn danh';

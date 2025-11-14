@@ -1,11 +1,10 @@
-
 import '../config/api_config.dart';
 import '../core/api.dart';
 import '../models/job_model.dart';
 
 class JobService {
   final ApiClient _api = ApiClient();
-
+  
   // Lấy tất cả công việc (public)
   Future<Map<String, dynamic>> getAllJobs({
     String? search,
@@ -337,25 +336,64 @@ class JobService {
     }
   }
 
-  // Helper method to parse salary range text to numeric values
-  Map<String, double>? _parseSalaryRange(String salaryRange) {
-    switch (salaryRange) {
-      case 'Dưới 10 triệu':
-        return {'min': 0, 'max': 10000000};
-      case '10 - 15 triệu':
-        return {'min': 10000000, 'max': 15000000};
-      case '15 - 20 triệu':
-        return {'min': 15000000, 'max': 20000000};
-      case '20 - 30 triệu':
-        return {'min': 20000000, 'max': 30000000};
-      case 'Trên 30 triệu':
-        return {'min': 30000000, 'max': 100000000};
-      default:
-        return null;
+  // Lấy công việc theo công ty
+  Future<Map<String, dynamic>> getJobsByCompany({
+    required String companyId,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      final Map<String, dynamic> queryParams = {
+        'companyId': companyId, // QUAN TRỌNG: query parameter
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+
+      print('🚀 Fetching jobs by company with endpoint: ${ApiConfig.getJobsByCompany}');
+      print('🚀 Query params: $queryParams');
+      
+      // Sử dụng endpoint getJobsByCompany với query parameter companyId
+      final response = await _api.get(
+        ApiConfig.getJobsByCompany, // '/job/company-jobs'
+        queryParameters: queryParams,
+      );
+
+      final responseData = response.data;
+      print('📦 Company jobs response: ${response.statusCode}');
+      print('📦 Company jobs data: $responseData');
+
+      if (responseData['success'] == true) {
+        final List<dynamic> jobsData = responseData['jobs'] ?? [];
+        final List<JobModel> jobs = jobsData
+            .map((job) => JobModel.fromJson(job))
+            .toList();
+
+        return {
+          'success': true,
+          'jobs': jobs,
+          'total': responseData['total'] ?? 0,
+          'page': responseData['page'] ?? page,
+          'totalPages': responseData['totalPages'] ?? 1,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': responseData['message'] ?? 'Không thể tải danh sách công việc của công ty',
+          'jobs': [],
+          'total': 0,
+        };
+      }
+    } catch (e) {
+      print('❌ Get company jobs error: $e');
+      return {
+        'success': false,
+        'error': e.toString().replaceAll('Exception: ', ''),
+        'jobs': [],
+        'total': 0,
+      };
     }
   }
-
-  // Lấy công việc theo category
+    // Lấy công việc theo category
   Future<Map<String, dynamic>> getJobsByCategory(String category, {
     int page = 1,
     int limit = 10,
@@ -403,6 +441,24 @@ class JobService {
         'jobs': [],
         'total': 0,
       };
+    }
+  }
+
+  // Helper method to parse salary range text to numeric values
+  Map<String, double>? _parseSalaryRange(String salaryRange) {
+    switch (salaryRange) {
+      case 'Dưới 10 triệu':
+        return {'min': 0, 'max': 10000000};
+      case '10 - 15 triệu':
+        return {'min': 10000000, 'max': 15000000};
+      case '15 - 20 triệu':
+        return {'min': 15000000, 'max': 20000000};
+      case '20 - 30 triệu':
+        return {'min': 20000000, 'max': 30000000};
+      case 'Trên 30 triệu':
+        return {'min': 30000000, 'max': 100000000};
+      default:
+        return null;
     }
   }
 }

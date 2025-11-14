@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
-import 'screens/Home/home_screen.dart';
+import 'screens/nav/home_screen.dart';
 import 'services/auth_service.dart';
 
 void main() async {

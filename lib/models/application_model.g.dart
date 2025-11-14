@@ -9,17 +9,13 @@ part of 'application_model.dart';
 ApplicationModel _$ApplicationModelFromJson(Map<String, dynamic> json) =>
     ApplicationModel(
       id: json['_id'] as String,
-      jobId: ApplicationModel._parseJobId(json['job']),
-      applicantId: ApplicationModel._parseApplicantId(json['applicant']),
+      jobId: ApplicationModel._parseJob(json['job']),
+      applicantId: ApplicationModel._parseApplicant(json['applicant']),
       status: json['status'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
-      job: json['jobInfo'] == null
-          ? null
-          : JobModel.fromJson(json['jobInfo'] as Map<String, dynamic>),
-      applicant: json['applicantInfo'] == null
-          ? null
-          : UserModel.fromJson(json['applicantInfo'] as Map<String, dynamic>),
+      jobData: json['job'] as Map<String, dynamic>?,
+      applicantData: json['applicant'] as Map<String, dynamic>?,
     );
 
 Map<String, dynamic> _$ApplicationModelToJson(ApplicationModel instance) =>
@@ -30,6 +26,4 @@ Map<String, dynamic> _$ApplicationModelToJson(ApplicationModel instance) =>
       'status': instance.status,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
-      'jobInfo': instance.job,
-      'applicantInfo': instance.applicant,
     };

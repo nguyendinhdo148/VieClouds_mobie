@@ -1,6 +1,11 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorage {
+  // Tạo singleton instance
+  static final SecureStorage _instance = SecureStorage._internal();
+  factory SecureStorage() => _instance;
+  SecureStorage._internal();
+
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   static const String _tokenKey = 'auth_token';
@@ -61,7 +66,7 @@ class SecureStorage {
     final userData = await getUserData();
     final sessionActive = await isSessionActive();
     print('🔍 DEBUG STORAGE:');
-    print('   Token: ${token != null ? "PRESENT" : "NULL"}');
+    print('   Token: ${token != null ? "PRESENT (${token.substring(0, 20)}...)" : "NULL"}');
     print('   UserData: ${userData != null ? "PRESENT" : "NULL"}');
     print('   Session Active: $sessionActive');
   }
