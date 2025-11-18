@@ -23,9 +23,15 @@ dependencies:
   json_annotation: ^4.9.0
   image_picker: ^1.2.0
   
-  # SỬA VERSION MỚI:
-  file_picker: 10.3.3              # chọn file PDF - version mới
+  # File & URL handling
+  file_picker: ^10.3.3              # chọn file PDF - version mới
   url_launcher: ^6.1.11             # mở URL/file PDF
+  
+  # Chat AI dependencies - THÊM MỚI
+  flutter_animate: ^4.1.1           # animations cho chat
+  cached_network_image: ^3.3.0      # load ảnh từ network (nếu cần)
+  webview_flutter: ^4.4.4           # hiển thị web content (nếu cần mở link trong app)
+  share_plus: ^7.2.1                # chia sẻ nội dung chat
 
 dev_dependencies:
   flutter_test:
@@ -36,6 +42,13 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  
   assets:
     - assets/images/
     - assets/icons/
+    # THÊM MỚI - assets cho chat AI
+    - assets/chat/
+    - assets/ai_icons/
+    
+  # THÊM PERMISSIONS CHO ANDROID (nếu cần)
+  # permissions được xử lý trong android/app/src/main/AndroidManifest.xml

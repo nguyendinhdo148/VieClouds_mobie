@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:viejob_app/screens/Home_tab/blog/blog_page.dart';
 import '../../services/job_service.dart';
 import '../../services/company_service.dart';
 import '../../models/job_model.dart';
@@ -353,9 +354,10 @@ class _HomeTabState extends State<HomeTab> {
               'Ứng tuyển',
               Icons.send,
               Colors.orange,
-              () {
-                // TODO: Navigate to applications screen
-              },
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BlogPage()),
+              ),
             ),
           ],
         ),

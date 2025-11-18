@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<String> _tabTitles = [
     'Trang chủ',
-    'CV & Hồ sơ',
+    'Blog',
     'Kết nối',
     'Thông báo',
     'Tài khoản'

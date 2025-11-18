@@ -56,4 +56,19 @@ class ApiConfig {
   static const String updateApplicationStatus =
       '/application/update-application-status'; // + '/:id'
   static const String getApplicationOverview = '/application/overview';
+
+  // 📝 BLOG ENDPOINTS
+  static const String getAllBlogs = '/blog/all-blogs';
+  static const String getBlogBySlug = '/blog/detail'; // + '/:slug'
+  static const String getBlogUpdateById = '/blog/detail/update'; // + '/:id'
+  static const String getRandomBlogs = '/blog/random-blogs';
+  static const String getBlogOverview = '/blog/blogs-overview';
+  static const String createBlog = '/blog/create-blog-mobie';
+  static const String updateBlog = '/blog/update-blog'; // + '/:id'
+  static const String deleteBlog = '/blog/delete-blog'; // + '/:id'
+
+  // 🤖 AI ENDPOINTS
+  static const String generateDescription = '/ai/generate-description';
+  static const String chatWithAI = '/ai/chat_with_ai';
+  static const String resumeReview = '/ai/resume-review';
 }
