@@ -17,20 +17,20 @@ class GlobalAIChat extends StatefulWidget {
 
 class _GlobalAIChatState extends State<GlobalAIChat> {
   bool _isChatVisible = false;
-  late Offset _floatingButtonPosition;
+  Offset? _floatingButtonPosition;
 
   @override
   void initState() {
     super.initState();
-
-    // Khởi tạo vị trí button ở góc phải dưới màn hình sau khi có context
+    // Khởi tạo vị trí của button sau khi layout xong
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final size = MediaQuery.of(context).size;
       const buttonSize = 72.0;
+
       setState(() {
-        _floatingButtonPosition = Offset(
-          size.width - buttonSize - 20, // cách mép phải 20
-          size.height - buttonSize - 20, // cách mép dưới 20
+        _floatingButtonPosition ??= Offset(
+          size.width - buttonSize - 20,
+          size.height - buttonSize - 20,
         );
       });
     });
@@ -44,10 +44,13 @@ class _GlobalAIChatState extends State<GlobalAIChat> {
     final screenSize = MediaQuery.of(context).size;
     const buttonSize = 72.0;
 
+    if (_floatingButtonPosition == null) return;
+
     setState(() {
-      double dx = (_floatingButtonPosition.dx + details.delta.dx)
+      double dx = (_floatingButtonPosition!.dx + details.delta.dx)
           .clamp(0, screenSize.width - buttonSize);
-      double dy = (_floatingButtonPosition.dy + details.delta.dy)
+
+      double dy = (_floatingButtonPosition!.dy + details.delta.dy)
           .clamp(0, screenSize.height - buttonSize);
 
       _floatingButtonPosition = Offset(dx, dy);
@@ -56,58 +59,61 @@ class _GlobalAIChatState extends State<GlobalAIChat> {
 
   @override
   Widget build(BuildContext context) {
-    // Nếu _floatingButtonPosition chưa được khởi tạo thì trả về child trước
-    if (_floatingButtonPosition == null) return widget.child;
+    if (_floatingButtonPosition == null) {
+      return widget.child;
+    }
+
+    const buttonSize = 72.0;
+
+    final List<OverlayEntry> entries = [
+      // toàn bộ app
+      OverlayEntry(builder: (overlayContext) {
+        return widget.child;
+      }),
+
+      // Chat hoặc Floating button
+      OverlayEntry(builder: (overlayContext) {
+        if (_isChatVisible) {
+          return AIChatWidget(onClose: hideChat);
+        }
+
+        return Positioned(
+          left: _floatingButtonPosition!.dx,
+          top: _floatingButtonPosition!.dy,
+          child: GestureDetector(
+            onPanUpdate: _onPanUpdate,
+            onTap: showChat,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: buttonSize,
+                height: buttonSize,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade300, Colors.blue.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(buttonSize / 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.18),
+                      blurRadius: 8,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.smart_toy, color: Colors.white, size: 32),
+              ),
+            ),
+          ),
+        );
+      }),
+    ];
 
     return Material(
       color: Colors.transparent,
-      child: Stack(
-        children: [
-          widget.child,
-
-          // FULLSCREEN Chat overlay
-          if (_isChatVisible)
-            Positioned.fill(
-              child: AIChatWidget(
-                onClose: hideChat,
-              ),
-            ),
-
-          // Draggable button
-          if (!_isChatVisible)
-            Positioned(
-              left: _floatingButtonPosition.dx,
-              top: _floatingButtonPosition.dy,
-              child: GestureDetector(
-                onPanUpdate: _onPanUpdate,
-                onTap: showChat,
-                child: Material(
-                  color: Colors.transparent,
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.blue.shade300, Colors.blue.shade600],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(36),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.18),
-                          blurRadius: 8,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.smart_toy, color: Colors.white, size: 32),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
+      child: Overlay(initialEntries: entries),
     );
   }
 }

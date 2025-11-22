@@ -32,6 +32,8 @@ dependencies:
   cached_network_image: ^3.3.0      # load ảnh từ network (nếu cần)
   webview_flutter: ^4.4.4           # hiển thị web content (nếu cần mở link trong app)
   share_plus: ^7.2.1                # chia sẻ nội dung chat
+  socket_io_client: ^3.1.2
+  flutter_local_notifications: ^19.5.0
 
 dev_dependencies:
   flutter_test:
@@ -44,11 +46,11 @@ flutter:
   uses-material-design: true
   
   assets:
-    - assets/images/
-    - assets/icons/
+    - assets/images/   # <-- comment or keep only if this folder exists
+    - assets/icons/    # <-- comment or keep only if this folder exists
     # THÊM MỚI - assets cho chat AI
-    - assets/chat/
-    - assets/ai_icons/
+    # - assets/chat/   # disabled because folder not found during build
+    # - assets/ai_icons/ # disabled because folder not found during build
     
   # THÊM PERMISSIONS CHO ANDROID (nếu cần)
   # permissions được xử lý trong android/app/src/main/AndroidManifest.xml

@@ -5,10 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../home_tabs/home_tab.dart';
-import '../home_tabs/cv_tab.dart';
+import '../home_tabs/reviewCV.dart';
 import '../home_tabs/connect_tab.dart';
 import '../home_tabs/notification_tab.dart';
 import '../home_tabs/account_tab.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -25,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _tabs = [
     const HomeTab(),
-    const CVTab(),
+    const ResumeReviewScreen(),
     const ConnectTab(),
     const NotificationTab(),
     const AccountTab(),
@@ -33,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<String> _tabTitles = [
     'Trang chủ',
-    'Blog',
+    'Phân tích CV',
     'Kết nối',
     'Thông báo',
     'Tài khoản'

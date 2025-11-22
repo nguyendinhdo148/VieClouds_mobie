@@ -35,7 +35,7 @@ class JobModel {
   @JsonKey(name: 'position')
   final int position;
 
-  // ✅ Chỉ giữ 1 field duy nhất để parse dữ liệu company (đã populate từ BE)
+  // Chỉ giữ 1 field duy nhất để parse dữ liệu company (đã populate từ BE)
   @JsonKey(name: 'company', fromJson: _parseCompanyData)
   final Map<String, dynamic>? companyData;
 
@@ -117,13 +117,13 @@ class JobModel {
 
   // ======== DERIVED GETTERS ========
 
-  /// ✅ Lấy companyId từ dữ liệu đã populate
+  /// Lấy companyId từ dữ liệu đã populate
   String get companyId {
     if (companyData == null) return '';
     return companyData!['_id']?.toString() ?? '';
   }
 
-  /// ✅ Lấy tên công ty hiển thị
+  /// Lấy tên công ty hiển thị
   String get companyName {
     if (companyInfo?.name != null && companyInfo!.name.isNotEmpty) {
       return companyInfo!.name;
@@ -134,7 +134,7 @@ class JobModel {
     return 'Công ty ẩn danh';
   }
 
-  /// ✅ Lấy logo công ty
+  /// Lấy logo công ty
   String? get companyLogo {
     if (companyInfo?.logo != null && companyInfo!.logo!.isNotEmpty) {
       return companyInfo!.logo;
@@ -145,10 +145,10 @@ class JobModel {
     return null;
   }
 
-  /// ✅ Lấy trạng thái việc làm
+  /// Trạng thái việc làm
   bool get isActive => status == 'active' && approval == 'approved';
 
-  /// ✅ Hiển thị lương
+  /// Hiển thị lương
   String get formattedSalary {
     if (salary == 0) return 'Thương lượng';
     if (salary >= 1000000) {
@@ -157,7 +157,7 @@ class JobModel {
     return '${salary.toStringAsFixed(0)} VNĐ';
   }
 
-  /// ✅ Mức kinh nghiệm
+  /// Mức kinh nghiệm
   String get experienceText {
     switch (experienceLevel) {
       case 0:
@@ -177,7 +177,7 @@ class JobModel {
     }
   }
 
-  /// ✅ Vị trí
+  /// Vị trí
   String get positionTitle {
     switch (position) {
       case 1:
@@ -197,7 +197,7 @@ class JobModel {
     }
   }
 
-  /// ✅ Kiểu công việc (dịch sang tiếng Việt)
+  /// Kiểu công việc (dịch sang tiếng Việt)
   String get jobTypeText {
     switch (jobType.toLowerCase()) {
       case 'fulltime':
@@ -219,7 +219,7 @@ class JobModel {
     }
   }
 
-  /// ✅ Hiển thị trạng thái việc làm
+  /// Trạng thái việc làm
   String get statusText {
     switch (status) {
       case 'active':
@@ -233,7 +233,7 @@ class JobModel {
     }
   }
 
-  /// ✅ Hiển thị trạng thái duyệt
+  /// Trạng thái duyệt
   String get approvalText {
     switch (approval) {
       case 'pending':
@@ -247,7 +247,7 @@ class JobModel {
     }
   }
 
-  /// ✅ Thời gian đăng tin
+  /// Thời gian đăng tin
   String get timeAgo {
     final now = DateTime.now();
     final diff = now.difference(createdAt);
@@ -259,10 +259,10 @@ class JobModel {
     return '${(diff.inDays / 30).floor()} tháng trước';
   }
 
-  /// ✅ Kiểm tra job mới (<=3 ngày)
+  /// Kiểm tra job mới (<=3 ngày)
   bool get isUrgent => createdAt.difference(DateTime.now()).inDays.abs() <= 3;
 
-  /// ✅ Lấy tên người tạo
+  /// Lấy tên người tạo
   String get creatorName {
     if (createdByUser != null) {
       return createdByUser?['fullname'] ?? createdByUser?['name'] ?? 'Ẩn danh';

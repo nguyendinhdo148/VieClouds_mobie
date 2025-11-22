@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:viejob_app/screens/Home_tab/job/components/job_list_section.dart';
+import 'package:viejob_app/screens/Home_tab/job/components/search_filter_section.dart';
+import 'package:viejob_app/screens/Home_tab/job/components/empty_state_section.dart';
+import 'package:viejob_app/screens/Home_tab/job/components/job_description_section.dart';
+import 'package:viejob_app/screens/Home_tab/job/components/job_description_section.dart';
+import 'package:viejob_app/services/application_service.dart';
 import '../../../services/job_service.dart';
 import '../../../models/job_model.dart';
+import '../../../models/application_model.dart';
 
 class FindJobScreen extends StatefulWidget {
-  const FindJobScreen({Key? key, required String initialSearch}) : super(key: key);
+  final String initialSearch;
+
+  const FindJobScreen({
+    Key? key,
+    required this.initialSearch,
+  }) : super(key: key);
 
   @override
   State<FindJobScreen> createState() => _FindJobScreenState();
@@ -13,6 +24,7 @@ class FindJobScreen extends StatefulWidget {
 class _FindJobScreenState extends State<FindJobScreen> {
   final TextEditingController _searchController = TextEditingController();
   final JobService _jobService = JobService();
+  final ApplicationService _applicationService = ApplicationService();
   
   String _selectedCategory = 'Tất cả';
   String _selectedLocation = 'Tất cả địa điểm';
@@ -20,8 +32,11 @@ class _FindJobScreenState extends State<FindJobScreen> {
   
   List<JobModel> _jobs = [];
   List<JobModel> _filteredJobs = [];
+  List<ApplicationModel> _appliedJobs = [];
   bool _isLoading = true;
+  bool _isLoadingApplications = true;
   bool _isSearching = false;
+  bool _isApplying = false;
   String _errorMessage = '';
   int _currentPage = 1;
   bool _hasMore = true;
@@ -59,7 +74,8 @@ class _FindJobScreenState extends State<FindJobScreen> {
   @override
   void initState() {
     super.initState();
-    _loadJobs();
+    _searchController.text = widget.initialSearch;
+    _loadInitialData();
     _setupSearchListener();
   }
 
@@ -69,6 +85,13 @@ class _FindJobScreenState extends State<FindJobScreen> {
         _filterJobs();
       }
     });
+  }
+
+  Future<void> _loadInitialData() async {
+    await Future.wait([
+      _loadJobs(),
+      _loadAppliedJobs(),
+    ]);
   }
 
   Future<void> _loadJobs({bool loadMore = false}) async {
@@ -100,7 +123,7 @@ class _FindJobScreenState extends State<FindJobScreen> {
             _jobs = newJobs;
           }
           _filteredJobs = _jobs;
-          _hasMore = newJobs.length == 10; // Assuming 10 items per page
+          _hasMore = newJobs.length == 10;
           _currentPage++;
         });
       } else {
@@ -118,6 +141,322 @@ class _FindJobScreenState extends State<FindJobScreen> {
         _isSearching = false;
       });
     }
+  }
+
+  Future<void> _loadAppliedJobs() async {
+    try {
+      print('🔄 Loading applied jobs for FindJobScreen...');
+      final appliedJobs = await _applicationService.getAppliedJobs();
+      
+      // DEBUG: Kiểm tra jobId của từng application
+      print('📦 FIND JOB - APPLIED JOBS DEBUG:');
+      for (int i = 0; i < appliedJobs.length; i++) {
+        final app = appliedJobs[i];
+        print('   App $i: ${app.id}');
+        print('     - jobId: "${app.jobId}"');
+        
+        if (app.jobData is Map) {
+          final jobData = app.jobData as Map;
+          print('     - jobData keys: ${jobData.keys}');
+        }
+        print('     ---');
+      }
+      
+      setState(() {
+        _appliedJobs = appliedJobs;
+      });
+    } catch (e) {
+      print('❌ Error loading applied jobs in FindJobScreen: $e');
+    } finally {
+      setState(() {
+        _isLoadingApplications = false;
+      });
+    }
+  }
+
+  bool _hasAppliedToJob(String jobId) {
+    print('🔍 FindJob - Checking application for job: $jobId');
+    
+    for (final app in _appliedJobs) {
+      print('   - Checking app: ${app.id}');
+      print('     - app.jobId: "${app.jobId}"');
+      
+      // SO SÁNH TRỰC TIẾP app.jobId VỚI jobId
+      if (app.jobId == jobId) {
+        print('     -> ✅ MATCH via app.jobId');
+        return true;
+      }
+    }
+    
+    print('   - ❌ NO application found for job: $jobId');
+    return false;
+  }
+
+  String _getApplicationStatus(String jobId) {
+    print('📊 FindJob - Getting status for job: $jobId');
+    
+    try {
+      final application = _appliedJobs.firstWhere(
+        (app) => app.jobId == jobId,
+        orElse: () => ApplicationModel(
+          id: '',
+          jobId: '',
+          applicantId: '',
+          status: 'not_applied',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      
+      print('   - Application status: ${application.status}');
+      return application.status;
+    } catch (e) {
+      print('   - Error getting status: $e');
+      return 'not_applied';
+    }
+  }
+
+  String _getApplyButtonText(String jobId) {
+    final hasApplied = _hasAppliedToJob(jobId);
+    print('🔄 FindJob - Getting button text for job: $jobId');
+    print('   - Has applied: $hasApplied');
+    
+    if (!hasApplied) {
+      print('   - Button text: Ứng tuyển');
+      return 'Ứng tuyển';
+    }
+    
+    final status = _getApplicationStatus(jobId);
+    print('   - Application status: $status');
+    
+    switch (status) {
+      case 'pending':
+        print('   - Button text: Đã ứng tuyển');
+        return 'Đã ứng tuyển';
+      case 'accepted':
+        print('   - Button text: Đã được chấp nhận');
+        return 'Đã được chấp nhận';
+      case 'rejected':
+        print('   - Button text: Đã bị từ chối');
+        return 'Đã bị từ chối';
+      default:
+        print('   - Button text: Ứng tuyển (default)');
+        return 'Ứng tuyển';
+    }
+  }
+
+  Color _getApplyButtonColor(String jobId, bool isActive) {
+    if (!isActive) {
+      print('🎨 FindJob - Button color: Grey (inactive)');
+      return Colors.grey;
+    }
+    
+    final hasApplied = _hasAppliedToJob(jobId);
+    if (!hasApplied) {
+      print('🎨 FindJob - Button color: Blue (can apply)');
+      return Colors.blue;
+    }
+    
+    final status = _getApplicationStatus(jobId);
+    print('🎨 FindJob - Button color for status $status');
+    
+    switch (status) {
+      case 'pending':
+        return Colors.orange;
+      case 'accepted':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  bool _canApply(String jobId, bool isActive) {
+    final canApply = isActive && !_hasAppliedToJob(jobId);
+    print('🔓 FindJob - Can apply for job $jobId: $canApply (isActive: $isActive)');
+    return canApply;
+  }
+
+  Future<void> _applyForJob(JobModel job) async {
+    setState(() {
+      _isApplying = true;
+    });
+
+    try {
+      final result = await _applicationService.applyJob(job.id);
+
+      if (result['success'] == true) {
+        // Reload applied jobs để cập nhật UI
+        print('🔄 FindJob - Reloading applied jobs after successful application...');
+        await _loadAppliedJobs();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Ứng tuyển thành công!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Ứng tuyển thất bại'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isApplying = false;
+      });
+    }
+  }
+
+  void _showApplyDialog(JobModel job) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Xác nhận ứng tuyển',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Bạn có chắc muốn ứng tuyển vào vị trí:'),
+            const SizedBox(height: 8),
+            Text(
+              job.title,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.blue[700],
+              ),
+            ),
+            Text(
+              'tại ${job.companyName}',
+              style: const TextStyle(
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info, color: Colors.blue[700], size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'CV của bạn sẽ được gửi đến nhà tuyển dụng',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _isApplying
+                ? null
+                : () async {
+                    Navigator.pop(context);
+                    await _applyForJob(job);
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[600],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: _isApplying
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Text(
+                    'Xác nhận ứng tuyển',
+                    style: TextStyle(color: Colors.white),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showApplicationStatusDialog(JobModel job) {
+    final status = _getApplicationStatus(job.id);
+    String title = '';
+    String message = '';
+    Color color = Colors.blue;
+
+    switch (status) {
+      case 'pending':
+        title = 'Đã ứng tuyển';
+        message = 'Bạn đã ứng tuyển vào vị trí này. Hồ sơ của bạn đang được xem xét.';
+        color = Colors.orange;
+        break;
+      case 'accepted':
+        title = 'Được chấp nhận';
+        message = 'Chúc mừng! Bạn đã được chấp nhận cho vị trí này. Nhà tuyển dụng sẽ liên hệ với bạn sớm.';
+        color = Colors.green;
+        break;
+      case 'rejected':
+        title = 'Đã bị từ chối';
+        message = 'Rất tiếc, hồ sơ của bạn không phù hợp với vị trí này. Hãy thử ứng tuyển các vị trí khác.';
+        color = Colors.red;
+        break;
+      default:
+        title = 'Trạng thái ứng tuyển';
+        message = 'Không thể xác định trạng thái ứng tuyển.';
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title, style: TextStyle(color: color)),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _filterJobs() {
@@ -147,16 +486,81 @@ class _FindJobScreenState extends State<FindJobScreen> {
   }
 
   void _refreshJobs() {
+    _loadInitialData();
+  }
+
+  void _updateFilter(String type, String value) {
+    setState(() {
+      switch (type) {
+        case 'category':
+          _selectedCategory = value;
+          break;
+        case 'location':
+          _selectedLocation = value;
+          break;
+        case 'salary':
+          _selectedSalary = value;
+          break;
+      }
+    });
     _loadJobs();
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _selectedCategory = 'Tất cả';
+      _selectedLocation = 'Tất cả địa điểm';
+      _selectedSalary = 'Tất cả mức lương';
+      _searchController.clear();
+    });
+    _loadJobs();
+  }
+
+  void _showJobDetail(JobModel job) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          job.title,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        content: JobDescriptionSection(job: job),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Handle apply action if needed
+              if (_canApply(job.id, job.isActive)) {
+                _showApplyDialog(job);
+              } else {
+                _showApplicationStatusDialog(job);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _getApplyButtonColor(job.id, job.isActive),
+            ),
+            child: Text(
+              _getApplyButtonText(job.id),
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Tìm việc làm',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -172,124 +576,47 @@ class _FindJobScreenState extends State<FindJobScreen> {
       body: Column(
         children: [
           // Search and Filter Section
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey[50],
-            child: Column(
-              children: [
-                // Search Bar
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Tìm kiếm công việc, kỹ năng, công ty...',
-                      hintStyle: GoogleFonts.inter(color: Colors.grey),
-                      border: InputBorder.none,
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      suffixIcon: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_isSearching)
-                            const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            ),
-                          IconButton(
-                            icon: const Icon(Icons.tune, color: Colors.grey),
-                            onPressed: _showAdvancedFilter,
-                          ),
-                        ],
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                    ),
-                    onSubmitted: (value) => _performSearch(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Quick Filters
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('Lĩnh vực', _selectedCategory, _showCategoryFilter),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Địa điểm', _selectedLocation, _showLocationFilter),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Mức lương', _selectedSalary, _showSalaryFilter),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          SearchFilterSection(
+            searchController: _searchController,
+            selectedCategory: _selectedCategory,
+            selectedLocation: _selectedLocation,
+            selectedSalary: _selectedSalary,
+            isSearching: _isSearching,
+            categories: _categories,
+            locations: _locations,
+            salaries: _salaries,
+            onSearch: _performSearch,
+            onFilterChanged: _updateFilter,
+            onAdvancedFilter: _showAdvancedFilter,
           ),
 
           // Error Message
           if (_errorMessage.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.red[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red[200]!),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _errorMessage,
-                      style: GoogleFonts.inter(
-                        color: Colors.red[700],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 16),
-                    onPressed: () {
-                      setState(() {
-                        _errorMessage = '';
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
+            _buildErrorMessage(),
 
           // Job List
           Expanded(
             child: _isLoading && _jobs.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredJobs.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _filteredJobs.length + (_hasMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == _filteredJobs.length) {
-                            return _buildLoadMoreButton();
-                          }
-                          return _buildJobItem(_filteredJobs[index]);
-                        },
+                    ? EmptyStateSection(
+                        onRetry: _refreshJobs,
+                        hasSearchText: _searchController.text.isNotEmpty,
+                      )
+                    : JobListSection(
+                        jobs: _filteredJobs,
+                        hasMore: _hasMore,
+                        isLoading: _isLoading,
+                        appliedJobs: _appliedJobs,
+                        isApplying: _isApplying,
+                        onLoadMore: () => _loadJobs(loadMore: true),
+                        onJobTap: _showJobDetail,
+                        onApply: _applyForJob,
+                        onShowStatus: _showApplicationStatusDialog,
+                        hasAppliedToJob: _hasAppliedToJob,
+                        getApplyButtonText: _getApplyButtonText,
+                        getApplyButtonColor: _getApplyButtonColor,
+                        canApply: _canApply,
                       ),
           ),
         ],
@@ -297,380 +624,37 @@ class _FindJobScreenState extends State<FindJobScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.work_outline, size: 80, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text(
-            'Không tìm thấy công việc phù hợp',
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm',
-            style: GoogleFonts.inter(
-              color: Colors.grey[500],
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _refreshJobs,
-            child: const Text('Thử lại'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadMoreButton() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Center(
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : () => _loadJobs(loadMore: true),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Tải thêm'),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildJobItem(JobModel job) {
+  Widget _buildErrorMessage() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(color: Colors.grey[200]!),
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red[200]!),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              // Company Logo
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                  image: job.companyLogo != null
-                      ? DecorationImage(
-                          image: NetworkImage(job.companyLogo!),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: job.companyLogo != null
-                    ? null
-                    : const Icon(Icons.business, color: Colors.blue),
+          const Icon(Icons.error_outline, color: Colors.red, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _errorMessage,
+              style: TextStyle(
+                color: Colors.red[700],
+                fontSize: 14,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      job.title,
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      job.companyName,
-                      style: GoogleFonts.inter(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.bookmark_border, color: Colors.grey),
-                onPressed: () {
-                  // TODO: Implement save job
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Job Details
-          Row(
-            children: [
-              _buildJobDetail(Icons.location_on, job.location),
-              const SizedBox(width: 16),
-              _buildJobDetail(Icons.attach_money, job.formattedSalary),
-              const SizedBox(width: 16),
-              _buildJobDetail(Icons.access_time, job.jobTypeText),
-            ],
-          ),
-          const SizedBox(height: 12),
-          
-          // Job Description
-          Text(
-            job.description,
-            style: GoogleFonts.inter(
-              color: Colors.grey[600],
-              fontSize: 13,
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 12),
-          
-          // Posted Time and Apply Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                job.timeAgo,
-                style: GoogleFonts.inter(
-                  color: Colors.grey[500],
-                  fontSize: 12,
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  _showJobDetail(job);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                ),
-                child: Text(
-                  'Ứng tuyển',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildJobDetail(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.grey),
-        const SizedBox(width: 4),
-        Text(
-          text.length > 15 ? '${text.substring(0, 15)}...' : text,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showJobDetail(JobModel job) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(job.title),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Công ty: ${job.companyName}'),
-              Text('Địa điểm: ${job.location}'),
-              Text('Mức lương: ${job.formattedSalary}'),
-              Text('Loại hình: ${job.jobTypeText}'),
-              Text('Kinh nghiệm: ${job.experienceText}'),
-              Text('Vị trí: ${job.positionTitle}'),
-              const SizedBox(height: 16),
-              const Text('Mô tả công việc:'),
-              Text(job.description),
-              const SizedBox(height: 8),
-              if (job.requirements.isNotEmpty) ...[
-                const Text('Yêu cầu:'),
-                ...job.requirements.map((req) => Text('• $req')).toList(),
-              ],
-              if (job.benefits.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                const Text('Phúc lợi:'),
-                ...job.benefits.map((benefit) => Text('• $benefit')).toList(),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          ),
-          ElevatedButton(
+          IconButton(
+            icon: const Icon(Icons.close, size: 16),
             onPressed: () {
-              // TODO: Implement apply job
-              Navigator.pop(context);
+              setState(() {
+                _errorMessage = '';
+              });
             },
-            child: const Text('Ứng tuyển'),
           ),
-        ],
-      ),
-    );
-  }
-
-  // Các method filter khác giữ nguyên...
-  Widget _buildFilterChip(String label, String value, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$label: ',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-            Text(
-              value.length > 15 ? '${value.substring(0, 15)}...' : value,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, size: 16, color: Colors.grey),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showCategoryFilter() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return _buildFilterBottomSheet(
-          'Chọn lĩnh vực',
-          _categories,
-          _selectedCategory,
-          (value) {
-            setState(() {
-              _selectedCategory = value;
-            });
-            Navigator.pop(context);
-            _loadJobs();
-          },
-        );
-      },
-    );
-  }
-
-  void _showLocationFilter() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return _buildFilterBottomSheet(
-          'Chọn địa điểm',
-          _locations,
-          _selectedLocation,
-          (value) {
-            setState(() {
-              _selectedLocation = value;
-            });
-            Navigator.pop(context);
-            _loadJobs();
-          },
-        );
-      },
-    );
-  }
-
-  void _showSalaryFilter() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return _buildFilterBottomSheet(
-          'Chọn mức lương',
-          _salaries,
-          _selectedSalary,
-          (value) {
-            setState(() {
-              _selectedSalary = value;
-            });
-            Navigator.pop(context);
-            _loadJobs();
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildFilterBottomSheet(
-    String title,
-    List<String> options,
-    String selectedValue,
-    ValueChanged<String> onSelected,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...options.map((option) => ListTile(
-            title: Text(option),
-            trailing: option == selectedValue
-                ? const Icon(Icons.check, color: Colors.blue)
-                : null,
-            onTap: () => onSelected(option),
-          )).toList(),
-          const SizedBox(height: 20),
         ],
       ),
     );
@@ -690,9 +674,9 @@ class _FindJobScreenState extends State<FindJobScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  const Text(
                     'Bộ lọc nâng cao',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
@@ -717,14 +701,8 @@ class _FindJobScreenState extends State<FindJobScreen> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
-                        setState(() {
-                          _selectedCategory = 'Tất cả';
-                          _selectedLocation = 'Tất cả địa điểm';
-                          _selectedSalary = 'Tất cả mức lương';
-                          _searchController.clear();
-                        });
+                        _resetFilters();
                         Navigator.pop(context);
-                        _loadJobs();
                       },
                       child: const Text('Đặt lại'),
                     ),

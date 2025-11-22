@@ -7,7 +7,7 @@ class ConnectTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Text('Kết nối Tab'),
+      child: Text('Thông báo Tab'),
     );
   }
 }
