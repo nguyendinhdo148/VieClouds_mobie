@@ -5,6 +5,7 @@ import 'package:viejob_app/services/application_service.dart';
 import '../../../models/job_model.dart';
 import '../../../models/company_model.dart';
 import '../../../models/application_model.dart';
+import 'company_info_section.dart'; // File mới tách ra
 
 class JobByCompanyScreen extends StatefulWidget {
   final CompanyModel company;
@@ -88,149 +89,81 @@ class _JobByCompanyScreenState extends State<JobByCompanyScreen> {
     }
   }
 
-Future<void> _loadAppliedJobs() async {
-  try {
-    print('🔄 Loading applied jobs...');
-    final appliedJobs = await _applicationService.getAppliedJobs();
-    
-    // DEBUG: Kiểm tra jobId của từng application
-    print('📦 APPLIED JOBS DEBUG:');
-    for (int i = 0; i < appliedJobs.length; i++) {
-      final app = appliedJobs[i];
-      print('   App $i: ${app.id}');
-      print('     - jobId: "${app.jobId}"');
-      print('     - jobData: ${app.jobData != null ? "EXISTS" : "NULL"}');
+  Future<void> _loadAppliedJobs() async {
+    try {
+      print('🔄 Loading applied jobs...');
+      final appliedJobs = await _applicationService.getAppliedJobs();
       
-      if (app.jobData is Map) {
-        final jobData = app.jobData as Map;
-        print('     - jobData keys: ${jobData.keys}');
-        if (jobData.containsKey('_id')) {
-          print('     - jobData[_id]: ${jobData['_id']}');
-        }
+      setState(() {
+        _appliedJobs = appliedJobs;
+      });
+    } catch (e) {
+      print('❌ Error loading applied jobs: $e');
+    } finally {
+      setState(() {
+        _isLoadingApplications = false;
+      });
+    }
+  }
+
+  bool _hasAppliedToJob(String jobId) {
+    for (final app in _appliedJobs) {
+      if (app.jobId == jobId) {
+        return true;
       }
-      print('     ---');
     }
-    
-    setState(() {
-      _appliedJobs = appliedJobs;
-    });
-  } catch (e) {
-    print('❌ Error loading applied jobs: $e');
-  } finally {
-    setState(() {
-      _isLoadingApplications = false;
-    });
+    return false;
   }
-}
-bool _hasAppliedToJob(String jobId) {
-  print('🔍 Checking application for job: $jobId');
-  
-  for (final app in _appliedJobs) {
-    print('   - Checking app: ${app.id}');
-    print('     - app.jobId: "${app.jobId}"');
-    
-    // SO SÁNH TRỰC TIẾP app.jobId VỚI jobId
-    if (app.jobId == jobId) {
-      print('     -> ✅ MATCH via app.jobId');
-      return true;
-    }
-    
-    // DEBUG: In thêm để kiểm tra
-    if (app.jobData is Map) {
-      final jobData = app.jobData as Map;
-      print('     -> jobData contains keys: ${jobData.keys}');
+
+  String _getApplicationStatus(String jobId) {
+    try {
+      final application = _appliedJobs.firstWhere(
+        (app) => app.jobId == jobId,
+        orElse: () => ApplicationModel(
+          id: '',
+          jobId: '',
+          applicantId: '',
+          status: 'not_applied',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      return application.status;
+    } catch (e) {
+      return 'not_applied';
     }
   }
-  
-  print('   - ❌ NO application found for job: $jobId');
-  return false;
-}
-String _getApplicationStatus(String jobId) {
-  print('📊 Getting status for job: $jobId');
-  
-  try {
-    final application = _appliedJobs.firstWhere(
-      (app) => app.jobId == jobId, // SO SÁNH TRỰC TIẾP
-      orElse: () => ApplicationModel(
-        id: '',
-        jobId: '',
-        applicantId: '',
-        status: 'not_applied',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-    );
-    
-    print('   - Application status: ${application.status}');
-    return application.status;
-  } catch (e) {
-    print('   - Error getting status: $e');
-    return 'not_applied';
-  }
-}
-  /// Lấy text hiển thị cho button - FIXED
+
   String _getApplyButtonText(String jobId) {
     final hasApplied = _hasAppliedToJob(jobId);
-    print('🔄 Getting button text for job: $jobId');
-    print('   - Has applied: $hasApplied');
-    
-    if (!hasApplied) {
-      print('   - Button text: Ứng tuyển');
-      return 'Ứng tuyển';
-    }
+    if (!hasApplied) return 'Ứng tuyển';
     
     final status = _getApplicationStatus(jobId);
-    print('   - Application status: $status');
-    
     switch (status) {
-      case 'pending':
-        print('   - Button text: Đã ứng tuyển');
-        return 'Đã ứng tuyển';
-      case 'accepted':
-        print('   - Button text: Đã được chấp nhận');
-        return 'Đã được chấp nhận';
-      case 'rejected':
-        print('   - Button text: Đã bị từ chối');
-        return 'Đã bị từ chối';
-      default:
-        print('   - Button text: Ứng tuyển (default)');
-        return 'Ứng tuyển';
+      case 'pending': return 'Đã ứng tuyển';
+      case 'accepted': return 'Đã được chấp nhận';
+      case 'rejected': return 'Đã bị từ chối';
+      default: return 'Ứng tuyển';
     }
   }
 
-  /// Lấy màu cho button - FIXED
   Color _getApplyButtonColor(String jobId, bool isActive) {
-    if (!isActive) {
-      print('🎨 Button color: Grey (inactive)');
-      return Colors.grey;
-    }
+    if (!isActive) return Colors.grey;
     
     final hasApplied = _hasAppliedToJob(jobId);
-    if (!hasApplied) {
-      print('🎨 Button color: Blue (can apply)');
-      return Colors.blue;
-    }
+    if (!hasApplied) return Colors.blue;
     
     final status = _getApplicationStatus(jobId);
-    print('🎨 Button color for status $status');
-    
     switch (status) {
-      case 'pending':
-        return Colors.orange;
-      case 'accepted':
-        return Colors.green;
-      case 'rejected':
-        return Colors.red;
-      default:
-        return Colors.blue;
+      case 'pending': return Colors.orange;
+      case 'accepted': return Colors.green;
+      case 'rejected': return Colors.red;
+      default: return Colors.blue;
     }
   }
 
-  /// Kiểm tra có thể ứng tuyển không - FIXED
   bool _canApply(String jobId, bool isActive) {
-    final canApply = isActive && !_hasAppliedToJob(jobId);
-    print('🔓 Can apply for job $jobId: $canApply (isActive: $isActive)');
-    return canApply;
+    return isActive && !_hasAppliedToJob(jobId);
   }
 
   Future<void> _applyForJob(JobModel job) async {
@@ -242,8 +175,6 @@ String _getApplicationStatus(String jobId) {
       final result = await _applicationService.applyJob(job.id);
 
       if (result['success'] == true) {
-        // Reload applied jobs để cập nhật UI
-        print('🔄 Reloading applied jobs after successful application...');
         await _loadAppliedJobs();
         
         if (mounted) {
@@ -442,8 +373,8 @@ String _getApplicationStatus(String jobId) {
       ),
       body: Column(
         children: [
-          // Company Info Header
-          _buildCompanyHeader(),
+          // Company Info Section - ĐÃ TÁCH RA FILE RIÊNG
+          CompanyInfoSection(company: widget.company),
           
           // Error Message
           if (_errorMessage.isNotEmpty)
@@ -514,79 +445,6 @@ String _getApplicationStatus(String jobId) {
                           return _buildJobItem(_jobs[index]);
                         },
                       ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompanyHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Company Logo
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-              image: widget.company.logo != null
-                  ? DecorationImage(
-                      image: NetworkImage(widget.company.logo!),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: widget.company.logo != null
-                ? null
-                : Icon(Icons.business, color: Colors.blue[300], size: 30),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.company.name,
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                if (widget.company.location != null)
-                  Text(
-                    widget.company.location!,
-                    style: GoogleFonts.inter(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
-                const SizedBox(height: 4),
-                if (widget.company.shortDescription.isNotEmpty)
-                  Text(
-                    widget.company.shortDescription,
-                    style: GoogleFonts.inter(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
           ),
         ],
       ),

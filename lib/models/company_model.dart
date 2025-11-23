@@ -10,6 +10,9 @@ class CompanyModel {
   @JsonKey(name: 'name')
   final String name;
 
+  @JsonKey(name: 'slug')
+  final String? slug;
+
   @JsonKey(name: 'description')
   final String? description;
 
@@ -19,8 +22,20 @@ class CompanyModel {
   @JsonKey(name: 'location')
   final String? location;
 
+  @JsonKey(name: 'address')
+  final String? address;
+
   @JsonKey(name: 'logo')
   final String? logo;
+
+  @JsonKey(name: 'noe')
+  final String? noe; // number of employees
+
+  @JsonKey(name: 'yoe')
+  final String? yoe; // years of experience
+
+  @JsonKey(name: 'field')
+  final String? field; // field of work
 
   @JsonKey(name: 'businessLicense')
   final String? businessLicense;
@@ -43,10 +58,15 @@ class CompanyModel {
   CompanyModel({
     required this.id,
     required this.name,
+    this.slug,
     this.description,
     this.website,
     this.location,
+    this.address,
     this.logo,
+    this.noe,
+    this.yoe,
+    this.field,
     this.businessLicense,
     this.taxCode,
     required this.userId,
@@ -107,5 +127,41 @@ class CompanyModel {
       return website;
     }
     return 'https://$website';
+  }
+
+  // Helper method to get display location (prefer address over location)
+  String? get displayLocation {
+    return address ?? location;
+  }
+
+  // Helper method to get number of employees with formatting
+  String? get formattedNoe {
+    if (noe == null || noe!.isEmpty) return null;
+    return '$noe nhân viên';
+  }
+
+  // Helper method to get years of experience with formatting
+  String? get formattedYoe {
+    if (yoe == null || yoe!.isEmpty) return null;
+    return 'Thành lập $yoe';
+  }
+
+  // Helper method to check if company has complete profile
+  bool get hasCompleteProfile {
+    return description != null &&
+        description!.isNotEmpty &&
+        location != null &&
+        location!.isNotEmpty &&
+        logo != null &&
+        logo!.isNotEmpty;
+  }
+
+  // Helper method to get company stats for display
+  List<String> get companyStats {
+    final stats = <String>[];
+    if (noe != null && noe!.isNotEmpty) stats.add('$noe nhân viên');
+    if (yoe != null && yoe!.isNotEmpty) stats.add('Thành lập $yoe');
+    if (field != null && field!.isNotEmpty) stats.add(field!);
+    return stats;
   }
 }

@@ -46,6 +46,7 @@ class ApiConfig {
   static const String createCompany = '/company/create';
   static const String updateCompany = '/company/update-company';
   static const String deleteCompany = '/company'; // /company/:id
+  static const String getCompanyDetails = '/company/detail';
 
   // 🧾 APPLICATION (Ứng tuyển) ENDPOINTS
   static const String applyJob = '/application/apply-job'; // + '/:id'

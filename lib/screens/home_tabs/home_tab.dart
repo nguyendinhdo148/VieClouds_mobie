@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:viejob_app/screens/home_tabs/tabOfHome/home_header.dart';
 import 'package:viejob_app/screens/home_tabs/tabOfHome/quick_actions.dart';
 import 'package:viejob_app/screens/home_tabs/tabOfHome/recent_jobs_section.dart';
-import 'package:viejob_app/screens/home_tabs/tabOfHome/companies_section.dart';
+import 'package:viejob_app/screens/home_tabs/tabOfHome/companies_section.dart'; // Đảm bảo import đúng
 import '../../services/job_service.dart';
 import '../../services/company_service.dart';
 import '../../models/job_model.dart';
@@ -20,9 +20,9 @@ class _HomeTabState extends State<HomeTab> {
   final CompanyService _companyService = CompanyService();
 
   List<JobModel> _recentJobs = [];
-  List<CompanyModel> _featuredCompanies = [];
-  List<CompanyModel> _popularCompanies = [];
+  List<CompanyModel> _companies = [];
   bool _isLoading = true;
+  String _errorMessage = '';
 
   @override
   void initState() {
@@ -33,16 +33,19 @@ class _HomeTabState extends State<HomeTab> {
   Future<void> _loadHomeData() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = '';
     });
 
     try {
       await Future.wait([
         _loadRecentJobs(),
-        _loadFeaturedCompanies(),
-        _loadPopularCompanies(),
+        _loadCompanies(),
       ]);
     } catch (e) {
       print('Error loading home data: $e');
+      setState(() {
+        _errorMessage = 'Lỗi tải dữ liệu: $e';
+      });
     } finally {
       setState(() {
         _isLoading = false;
@@ -63,31 +66,36 @@ class _HomeTabState extends State<HomeTab> {
     }
   }
 
-  Future<void> _loadFeaturedCompanies() async {
+  Future<void> _loadCompanies() async {
     try {
+      print('🔄 [HomeTab] Loading companies...');
       final result = await _companyService.getAllCompanies();
+      
       if (result['success'] == true) {
-        final companies = result['companies'] ?? [];
-        setState(() {
-          _featuredCompanies = companies.take(4).toList();
-        });
-      }
-    } catch (e) {
-      print('Error loading featured companies: $e');
-    }
-  }
+        final List<dynamic> companiesData = result['companies'] ?? [];
+        final List<CompanyModel> companies = companiesData
+            .map((company) => CompanyModel.fromJson(company))
+            .toList();
 
-  Future<void> _loadPopularCompanies() async {
-    try {
-      final result = await _companyService.getAllCompanies();
-      if (result['success'] == true) {
-        final companies = result['companies'] ?? [];
         setState(() {
-          _popularCompanies = companies.skip(4).take(6).toList();
+          _companies = companies;
+        });
+        
+        print('✅ [HomeTab] Loaded ${_companies.length} companies');
+        for (var company in _companies) {
+          print('   - ${company.name}');
+        }
+      } else {
+        print('❌ [HomeTab] Failed to load companies: ${result['error']}');
+        setState(() {
+          _errorMessage = result['error'] ?? 'Không thể tải danh sách công ty';
         });
       }
     } catch (e) {
-      print('Error loading popular companies: $e');
+      print('❌ [HomeTab] Error loading companies: $e');
+      setState(() {
+        _errorMessage = 'Lỗi tải công ty: $e';
+      });
     }
   }
 
@@ -109,8 +117,50 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
+  Widget _buildErrorWidget() {
+    if (_errorMessage.isEmpty) return const SizedBox();
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: Colors.red[400], size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _errorMessage,
+              style: _TextStyles.bodyMedium.copyWith(
+                color: Colors.red[700],
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16),
+            onPressed: () {
+              setState(() {
+                _errorMessage = '';
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    print('🏠 [HomeTab] Building...');
+    print('   - Recent jobs: ${_recentJobs.length}');
+    print('   - Companies: ${_companies.length}');
+    print('   - isLoading: $_isLoading');
+
     return Scaffold(
       backgroundColor: _PastelColors.background,
       body: _isLoading
@@ -135,26 +185,21 @@ class _HomeTabState extends State<HomeTab> {
                     const QuickActionsSection(),
                     const SizedBox(height: 28),
 
-                    // Recent Jobs
-                    if (_recentJobs.isNotEmpty)
+                    // Error Message
+                    _buildErrorWidget(),
+
+                    // Recent Jobs - GIỮ NGUYÊN
+                    if (_recentJobs.isNotEmpty) ...[
                       RecentJobsSection(jobs: _recentJobs),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 32),
+                    ],
 
-                    // Featured Companies
-                    if (_featuredCompanies.isNotEmpty)
+                    // Companies Section - CHỈ HIỆN MỘT SECTION DUY NHẤT
+                    if (_companies.isNotEmpty)
                       CompaniesSection(
-                        title: 'Công ty nổi bật',
-                        companies: _featuredCompanies,
-                        isFeatured: true,
-                      ),
-                    const SizedBox(height: 24),
-
-                    // Popular Companies
-                    if (_popularCompanies.isNotEmpty)
-                      CompaniesSection(
-                        title: 'Công ty phổ biến',
-                        companies: _popularCompanies,
-                        isHorizontal: true,
+                        title: 'Công ty hàng đầu',
+                        companies: _companies,
+                        isFeatured: false,
                       ),
                   ],
                 ),

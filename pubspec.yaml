@@ -22,16 +22,16 @@ dependencies:
   intl: ^0.19.0
   json_annotation: ^4.9.0
   image_picker: ^1.2.0
-  
+
   # File & URL handling
-  file_picker: ^10.3.3              # chọn file PDF - version mới
-  url_launcher: ^6.1.11             # mở URL/file PDF
-  
-  # Chat AI dependencies - THÊM MỚI
-  flutter_animate: ^4.1.1           # animations cho chat
-  cached_network_image: ^3.3.0      # load ảnh từ network (nếu cần)
-  webview_flutter: ^4.4.4           # hiển thị web content (nếu cần mở link trong app)
-  share_plus: ^7.2.1                # chia sẻ nội dung chat
+  file_picker: ^10.3.3
+  url_launcher: ^6.1.11
+
+  # Chat AI dependencies
+  flutter_animate: ^4.1.1
+  cached_network_image: ^3.3.0
+  webview_flutter: ^4.4.4
+  share_plus: ^7.2.1
   socket_io_client: ^3.1.2
   flutter_local_notifications: ^19.5.0
 
@@ -42,15 +42,12 @@ dev_dependencies:
   build_runner: ^2.4.7
   json_serializable: ^6.9.0
 
+  # Auto-generate app icon - THÊM VÀO ĐÂY
+  flutter_launcher_icons: ^0.13.1
+
 flutter:
   uses-material-design: true
-  
+
   assets:
-    - assets/images/   # <-- comment or keep only if this folder exists
-    - assets/icons/    # <-- comment or keep only if this folder exists
-    # THÊM MỚI - assets cho chat AI
-    # - assets/chat/   # disabled because folder not found during build
-    # - assets/ai_icons/ # disabled because folder not found during build
-    
-  # THÊM PERMISSIONS CHO ANDROID (nếu cần)
-  # permissions được xử lý trong android/app/src/main/AndroidManifest.xml
+    - assets/images/
+    - assets/icons/
