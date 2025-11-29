@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../models/blog_model.dart';
-import 'create_create_blog.dart';
 import '../../../services/blog_service.dart';
+import 'blog_detail_page.dart';
+import 'create_create_blog.dart';
+import 'widgets/blog_card.dart';
+import 'widgets/loading_indicator.dart';
+import 'widgets/error_widget.dart';
+import 'widgets/empty_state.dart';
 
-class BlogPage extends StatefulWidget {
-  const BlogPage({Key? key}) : super(key: key);
+class BlogListPage extends StatefulWidget {
+  const BlogListPage({Key? key}) : super(key: key);
 
   @override
-  State<BlogPage> createState() => _BlogPageState();
+  State<BlogListPage> createState() => _BlogListPageState();
 }
 
-class _BlogPageState extends State<BlogPage> {
+class _BlogListPageState extends State<BlogListPage> {
   late BlogService _blogService;
   List<BlogModel> _blogs = [];
   bool _isLoading = true;
@@ -34,17 +40,25 @@ class _BlogPageState extends State<BlogPage> {
       _errorMessage = '';
     });
 
-    final result = await _blogService.getAllBlogs();
-    
-    if (result.success && result.data != null) {
+    try {
+      final result = await _blogService.getAllBlogs();
+      
+      if (result.success && result.data != null) {
+        setState(() {
+          _blogs = result.data!.blogs;
+          _isLoading = false;
+          _isRefreshing = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = result.message;
+          _isLoading = false;
+          _isRefreshing = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        _blogs = result.data!.blogs;
-        _isLoading = false;
-        _isRefreshing = false;
-      });
-    } else {
-      setState(() {
-        _errorMessage = result.message;
+        _errorMessage = 'Lỗi kết nối: $e';
         _isLoading = false;
         _isRefreshing = false;
       });
@@ -61,8 +75,18 @@ class _BlogPageState extends State<BlogPage> {
   void _navigateToBlogDetail(BlogModel blog) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => BlogDetailPage(blog: blog),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => BlogDetailPage(blog: blog),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
       ),
     );
   }
@@ -79,29 +103,24 @@ class _BlogPageState extends State<BlogPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Cộng Đồng Blog',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
+        title: Text(
+          'Khám phá tri thức',
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w700,
             fontSize: 20,
             color: Colors.black87,
           ),
         ),
         backgroundColor: Colors.white,
-        elevation: 1,
+        elevation: 0,
         centerTitle: false,
+        // ĐÃ BỎ NÚT QUAY LẠI
         actions: [
           _buildCreateButton(),
-          const SizedBox(width: 8),
         ],
       ),
       body: _buildBody(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToCreateBlog,
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add, size: 28),
-      ),
+      floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
@@ -110,508 +129,209 @@ class _BlogPageState extends State<BlogPage> {
       margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
       child: ElevatedButton.icon(
         onPressed: _navigateToCreateBlog,
-        icon: const Icon(Icons.add, size: 18),
-        label: const Text(
-          'Viết Blog',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        icon: const Icon(Icons.edit_rounded, size: 16),
+        label: Text(
+          'Viết Bài', // ĐÃ ĐỔI TỪ "Viết Blog" THÀNH "Viết Bài"
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
+          backgroundColor: Colors.blue[600],
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
+          elevation: 1,
+          shadowColor: Colors.blue.withOpacity(0.3),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingActionButton() {
+    return FloatingActionButton(
+      onPressed: _navigateToCreateBlog,
+      backgroundColor: Colors.blue[600],
+      foregroundColor: Colors.white,
+      elevation: 2,
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue[600]!, Colors.blue[400]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Icon(Icons.add_rounded, size: 24),
       ),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return _buildLoadingIndicator();
+      return const BlogLoadingIndicator();
     }
 
     if (_errorMessage.isNotEmpty) {
-      return _buildErrorWidget();
+      return BlogErrorWidget(
+        errorMessage: _errorMessage,
+        onRetry: _loadBlogs,
+      );
     }
 
     return _buildBlogList();
   }
 
-  Widget _buildLoadingIndicator() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-            strokeWidth: 3,
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Đang tải bài viết...',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
-          ),
+  Widget _buildBlogList() {
+    return RefreshIndicator(
+      onRefresh: _refreshBlogs,
+      color: Colors.blue[600],
+      backgroundColor: Colors.white,
+      displacement: 40,
+      child: CustomScrollView(
+        slivers: [
+          // Header với thống kê
+          _buildHeaderSection(),
+          
+          // Grid blogs
+          _blogs.isEmpty ? _buildEmptySliver() : _buildBlogGrid(),
         ],
       ),
     );
   }
 
-  Widget _buildErrorWidget() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+  SliverToBoxAdapter _buildHeaderSection() {
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.error_outline_rounded,
-              size: 80,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 20),
+          
+            const SizedBox(height: 4),
             Text(
-              'Có lỗi xảy ra',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _errorMessage,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
+              '${_blogs.length} bài viết chia sẻ từ cộng đồng',
+              style: GoogleFonts.inter(
+                fontSize: 14,
                 color: Colors.grey[600],
-                height: 1.4,
               ),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _loadBlogs,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+            const SizedBox(height: 16),
+            
+            // Quick stats
+            _buildQuickStats(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBlogList() {
-    return RefreshIndicator(
-      onRefresh: _refreshBlogs,
-      color: Colors.blue,
-      backgroundColor: Colors.white,
-      child: _blogs.isEmpty ? _buildEmptyState() : _buildBlogGrid(),
+  Widget _buildQuickStats() {
+    // Tính toán số lượng blog theo trạng thái
+    final approvedCount = _blogs.where((blog) => blog.approval == 'approved').length;
+    final pendingCount = _blogs.where((blog) => blog.approval == 'pending').length;
+    final totalViews = _blogs.fold(0, (sum, blog) => sum + blog.views);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue[50]!, Colors.purple[50]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[100]!),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatItem(Icons.article_rounded, '${_blogs.length}', 'Bài viết'),
+          _buildStatItem(Icons.visibility_rounded, '$totalViews', 'Lượt xem'),
+          _buildStatItem(Icons.verified_rounded, '$approvedCount', 'Đã duyệt'),
+        ],
+      ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.8,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.article_outlined,
-              size: 100,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Chưa có bài viết nào',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+  Widget _buildStatItem(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Hãy là người đầu tiên chia sẻ kiến thức và trải nghiệm của bạn!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[500],
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _navigateToCreateBlog,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text(
-                'Viết Bài Đầu Tiên',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
+          child: Icon(icon, size: 18, color: Colors.blue[600]),
         ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 10,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  SliverFillRemaining _buildEmptySliver() {
+    return SliverFillRemaining(
+      child: BlogEmptyState(
+        onRefresh: _refreshBlogs,
       ),
     );
   }
 
   Widget _buildBlogGrid() {
-    return GridView.builder(
+    return SliverPadding(
       padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.75,
-      ),
-      itemCount: _blogs.length,
-      itemBuilder: (context, index) {
-        final blog = _blogs[index];
-        return _buildBlogCard(blog);
-      },
-    );
-  }
-
-  Widget _buildBlogCard(BlogModel blog) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: InkWell(
-        onTap: () => _navigateToBlogDetail(blog),
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Hình ảnh blog
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Container(
-                height: 120,
-                width: double.infinity,
-                color: Colors.grey[200],
-                child: blog.image.url.isNotEmpty
-                    ? Image.network(
-                        blog.image.url,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildPlaceholderImage();
-                        },
-                      )
-                    : _buildPlaceholderImage(),
-              ),
-            ),
-            
-            // Nội dung
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Tiêu đề
-                    Text(
-                      blog.title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    
-                    const SizedBox(height: 6),
-                    
-                    // Mô tả ngắn
-                    Expanded(
-                      child: Text(
-                        blog.content,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          height: 1.4,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Thể loại
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        blog.category,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.blue[700],
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Footer
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Trạng thái
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(blog.approval),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            _getStatusText(blog.approval),
-                            style: const TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        
-                        // Lượt xem
-                        Row(
-                          children: [
-                            Icon(Icons.remove_red_eye, size: 12, color: Colors.grey[500]),
-                            const SizedBox(width: 2),
-                            Text(
-                              '${blog.views}',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.75,
         ),
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderImage() {
-    return Container(
-      color: Colors.grey[200],
-      child: const Icon(
-        Icons.article_rounded,
-        size: 40,
-        color: Colors.grey,
-      ),
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'approved':
-        return Colors.green;
-      case 'rejected':
-        return Colors.red;
-      case 'pending':
-      default:
-        return Colors.orange;
-    }
-  }
-
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'approved':
-        return 'ĐÃ DUYỆT';
-      case 'rejected':
-        return 'TỪ CHỐI';
-      case 'pending':
-      default:
-        return 'CHỜ DUYỆT';
-    }
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'N/A';
-    final now = DateTime.now();
-    final difference = now.difference(date);
-    
-    if (difference.inDays > 0) {
-      return '${difference.inDays} ngày trước';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} giờ trước';
-    } else {
-      return 'Vừa xong';
-    }
-  }
-}
-
-class BlogDetailPage extends StatelessWidget {
-  final BlogModel blog;
-
-  const BlogDetailPage({Key? key, required this.blog}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Chi tiết bài viết',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        centerTitle: false,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Hình ảnh
-            if (blog.image.url.isNotEmpty)
-              Container(
-                height: 250,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: NetworkImage(blog.image.url),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            
-            // Nội dung
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Tiêu đề
-                  Text(
-                    blog.title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                      height: 1.3,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Thông tin meta
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[50],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          blog.category,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue[700],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Icon(Icons.remove_red_eye, size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${blog.views} lượt xem',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Nội dung chính
-                  Text(
-                    blog.content,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black87,
-                      height: 1.6,
-                    ),
-                    textAlign: TextAlign.justify,
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Tags
-                  if (blog.tags.isNotEmpty) ...[
-                    const Text(
-                      'Tags:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: blog.tags.map((tag) => Chip(
-                        label: Text(
-                          tag,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        backgroundColor: Colors.grey[100],
-                        visualDensity: VisualDensity.compact,
-                      )).toList(),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final blog = _blogs[index];
+            return BlogCard(
+              blog: blog,
+              onTap: () => _navigateToBlogDetail(blog),
+            );
+          },
+          childCount: _blogs.length,
         ),
       ),
     );

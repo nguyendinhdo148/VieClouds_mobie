@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:html_unescape/html_unescape.dart';
 import '../../../models/company_model.dart';
 import '../../../services/company_service.dart';
 import '../../home_tab/company/jobByCompany.dart';
@@ -16,6 +17,7 @@ class _CompanyPageState extends State<CompanyPage> {
   final CompanyService _companyService = CompanyService();
   final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
+  final HtmlUnescape _htmlUnescape = HtmlUnescape();
   
   List<CompanyModel> _companies = [];
   List<CompanyModel> _filteredCompanies = [];
@@ -37,6 +39,21 @@ class _CompanyPageState extends State<CompanyPage> {
         _filterCompanies();
       }
     });
+  }
+
+  // Hàm giải mã HTML
+  String _decodeHtml(String? htmlString) {
+    if (htmlString == null || htmlString.isEmpty) return '';
+    return _htmlUnescape.convert(htmlString);
+  }
+
+  // Rút gọn mô tả với giải mã HTML
+  String _getShortDescription(String? description) {
+    if (description == null) return '';
+    final decoded = _decodeHtml(description);
+    const maxLength = 120;
+    if (decoded.length <= maxLength) return decoded;
+    return '${decoded.substring(0, maxLength)}...';
   }
 
   Future<void> _loadCompanies() async {
@@ -83,10 +100,15 @@ class _CompanyPageState extends State<CompanyPage> {
         _filteredCompanies = _companies;
       } else {
         _filteredCompanies = _companies.where((company) {
-          return company.name.toLowerCase().contains(searchText) ||
-                 company.description?.toLowerCase().contains(searchText) == true ||
-                 company.location?.toLowerCase().contains(searchText) == true ||
-                 company.taxCode?.toLowerCase().contains(searchText) == true;
+          final name = company.name.toLowerCase();
+          final description = _decodeHtml(company.description ?? '').toLowerCase();
+          final location = company.location?.toLowerCase() ?? '';
+          final taxCode = company.taxCode?.toLowerCase() ?? '';
+          
+          return name.contains(searchText) ||
+                 description.contains(searchText) ||
+                 location.contains(searchText) ||
+                 taxCode.contains(searchText);
         }).toList();
       }
     });
@@ -108,7 +130,6 @@ class _CompanyPageState extends State<CompanyPage> {
   Future<void> _navigateToCompanyJobs(CompanyModel company) async {
     if (_isNavigating) return;
     
-    // Kiểm tra đăng nhập trước khi vào màn hình công việc
     final isLoggedIn = await _authService.isLoggedIn();
     if (!isLoggedIn) {
       if (mounted) {
@@ -172,7 +193,6 @@ class _CompanyPageState extends State<CompanyPage> {
             onPressed: () {
               Navigator.pop(context);
               // TODO: Navigate to login screen
-              // Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue[600],
@@ -190,127 +210,164 @@ class _CompanyPageState extends State<CompanyPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Danh sách công ty',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshCompanies,
-          ),
-        ],
-      ),
+      backgroundColor: Colors.grey[50],
       body: Column(
         children: [
           // Search Bar
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey[50],
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    blurRadius: 5,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Tìm kiếm công ty, địa điểm, mã số thuế...',
-                  hintStyle: GoogleFonts.inter(color: Colors.grey),
-                  border: InputBorder.none,
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_isSearching)
-                        const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      if (_searchController.text.isNotEmpty)
-                        IconButton(
-                          icon: const Icon(Icons.clear, size: 20),
-                          onPressed: () {
-                            _searchController.clear();
-                            _filterCompanies();
-                          },
-                        ),
-                    ],
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                ),
-                onSubmitted: (value) => _performSearch(),
-              ),
-            ),
-          ),
-
+          _buildSearchBar(),
+          
           // Error Message
-          if (_errorMessage.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.red[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red[200]!),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _errorMessage,
-                      style: GoogleFonts.inter(
-                        color: Colors.red[700],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 16),
-                    onPressed: () {
-                      setState(() {
-                        _errorMessage = '';
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-
+          if (_errorMessage.isNotEmpty) _buildErrorWidget(),
+          
           // Company List
           Expanded(
             child: RefreshIndicator(
               onRefresh: _loadCompanies,
-              child: _isLoading && _companies.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : _filteredCompanies.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredCompanies.length,
-                          itemBuilder: (context, index) {
-                            return _buildCompanyItem(_filteredCompanies[index]);
-                          },
-                        ),
+              color: Colors.blue,
+              backgroundColor: Colors.white,
+              child: _buildContent(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Container(
+        height: 50,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Tìm kiếm công ty, địa điểm, mã số thuế...',
+            hintStyle: GoogleFonts.inter(
+              color: Colors.grey[500],
+              fontSize: 14,
+            ),
+            border: InputBorder.none,
+            prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[500]),
+            suffixIcon: _buildSearchSuffixIcon(),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          ),
+          style: GoogleFonts.inter(fontSize: 14),
+          onSubmitted: (value) => _performSearch(),
+        ),
+      ),
+    );
+  }
+
+  Widget? _buildSearchSuffixIcon() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_isSearching)
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.blue[400],
+              ),
+            ),
+          ),
+        if (_searchController.text.isNotEmpty)
+          IconButton(
+            icon: Icon(Icons.clear_rounded, size: 18, color: Colors.grey[500]),
+            onPressed: () {
+              _searchController.clear();
+              _filterCompanies();
+            },
+          ),
+        // Nút reload đã được đẩy lên đây
+        IconButton(
+          icon: const Icon(Icons.refresh_rounded),
+          onPressed: _refreshCompanies,
+          tooltip: 'Làm mới',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red[100]!),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline_rounded, color: Colors.red[400], size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _errorMessage,
+              style: GoogleFonts.inter(
+                color: Colors.red[700],
+                fontSize: 13,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close_rounded, size: 18, color: Colors.red[400]),
+            onPressed: () {
+              setState(() {
+                _errorMessage = '';
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isLoading && _companies.isEmpty) {
+      return _buildLoadingIndicator();
+    } else if (_filteredCompanies.isEmpty) {
+      return _buildEmptyState();
+    } else {
+      return _buildCompanyList();
+    }
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              color: Colors.blue[400],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Đang tải danh sách công ty...',
+            style: GoogleFonts.inter(
+              color: Colors.grey[600],
+              fontSize: 14,
             ),
           ),
         ],
@@ -321,364 +378,314 @@ class _CompanyPageState extends State<CompanyPage> {
   Widget _buildEmptyState() {
     final hasSearchText = _searchController.text.isNotEmpty;
     
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            hasSearchText ? Icons.search_off : Icons.business_outlined, 
-            size: 80, 
-            color: Colors.grey[300]
-          ),
-          const SizedBox(height: 16),
-          Text(
-            hasSearchText ? 'Không tìm thấy công ty phù hợp' : 'Không có công ty nào',
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              hasSearchText ? Icons.search_off_rounded : Icons.business_center_rounded, 
+              size: 80, 
+              color: Colors.grey[300]
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            hasSearchText 
-                ? 'Hãy thử thay đổi từ khóa tìm kiếm'
-                : 'Hiện chưa có công ty nào trong hệ thống',
-            style: GoogleFonts.inter(
-              color: Colors.grey[500],
+            const SizedBox(height: 20),
+            Text(
+              hasSearchText ? 'Không tìm thấy công ty' : 'Chưa có công ty nào',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _refreshCompanies,
-            child: const Text('Thử lại'),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              hasSearchText 
+                  ? 'Hãy thử thay đổi từ khóa tìm kiếm của bạn'
+                  : 'Hiện chưa có công ty nào trong hệ thống',
+              style: GoogleFonts.inter(
+                color: Colors.grey[500],
+                fontSize: 13,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            if (hasSearchText)
+              ElevatedButton(
+                onPressed: () {
+                  _searchController.clear();
+                  _filterCompanies();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Xóa tìm kiếm',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              )
+            else
+              ElevatedButton(
+                onPressed: _refreshCompanies,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Thử lại',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildCompanyList() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      itemCount: _filteredCompanies.length,
+      itemBuilder: (context, index) {
+        return _buildCompanyItem(_filteredCompanies[index]);
+      },
     );
   }
 
   Widget _buildCompanyItem(CompanyModel company) {
-    return GestureDetector(
-      onTap: () {
-        _navigateToCompanyJobs(company);
-      },
-      child: Stack(
-        children: [
-          Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-              border: Border.all(color: Colors.grey[200]!),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _navigateToCompanyJobs(company),
+          child: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Company Logo
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(8),
-                        image: company.hasLogo
-                            ? DecorationImage(
-                                image: NetworkImage(company.logo!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: company.hasLogo
-                          ? null
-                          : const Icon(Icons.business, color: Colors.blue, size: 30),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            company.name,
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                    // Header with logo and basic info
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Company Logo
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(12),
+                            image: company.hasLogo
+                                ? DecorationImage(
+                                    image: NetworkImage(company.logo!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
                           ),
-                          const SizedBox(height: 4),
-                          if (company.location != null)
-                            Row(
+                          child: company.hasLogo
+                              ? null
+                              : Icon(Icons.business_rounded, 
+                                  color: Colors.blue[300], size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        
+                        // Company Info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                company.name,
+                                style: GoogleFonts.inter(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[800],
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              if (company.location != null)
+                                Row(
+                                  children: [
+                                    Icon(Icons.location_on_rounded, 
+                                        size: 12, color: Colors.grey[500]),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        company.location!,
+                                        style: GoogleFonts.inter(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+                        
+                        // Verified badge
+                        if (company.hasBusinessLicense)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.green[100]!),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                                Icon(Icons.verified_rounded, 
+                                    size: 12, color: Colors.green[600]),
                                 const SizedBox(width: 4),
                                 Text(
-                                  company.location!,
+                                  'Đã xác thực',
                                   style: GoogleFonts.inter(
-                                    color: Colors.grey[600],
-                                    fontSize: 13,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.green[700],
                                   ),
                                 ),
                               ],
                             ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                      onPressed: () {
-                        _showCompanyDetail(company);
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // Company Description
-                if (company.description != null && company.description!.isNotEmpty)
-                  Text(
-                    company.shortDescription,
-                    style: GoogleFonts.inter(
-                      color: Colors.grey[600],
-                      fontSize: 13,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                
-                const SizedBox(height: 12),
-                
-                // Company Details
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 8,
-                  children: [
-                    if (company.taxCode != null)
-                      _buildCompanyDetail('Mã số thuế: ${company.taxCode}'),
-                    if (company.website != null)
-                      _buildCompanyDetail('Website: ${company.formattedWebsite}'),
-                    if (company.hasBusinessLicense)
-                      _buildCompanyDetail('Đã xác thực', isVerified: true),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          if (_isNavigating)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompanyDetail(String text, {bool isVerified = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isVerified ? Colors.green[50] : Colors.grey[100],
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: isVerified ? Colors.green[200]! : Colors.grey[300]!,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isVerified)
-            const Icon(Icons.verified, size: 12, color: Colors.green),
-          if (isVerified) const SizedBox(width: 4),
-          Text(
-            text,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              color: isVerified ? Colors.green[700] : Colors.grey[600],
-              fontWeight: isVerified ? FontWeight.w500 : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCompanyDetail(CompanyModel company) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          height: MediaQuery.of(context).size.height * 0.8,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Chi tiết công ty',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              // Company Header
-              Row(
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(12),
-                      image: company.hasLogo
-                          ? DecorationImage(
-                              image: NetworkImage(company.logo!),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: company.hasLogo
-                        ? null
-                        : const Icon(Icons.business, color: Colors.blue, size: 40),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          company.name,
-                          style: GoogleFonts.inter(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        if (company.location != null)
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                              const SizedBox(width: 4),
-                              Text(
-                                company.location!,
-                                style: GoogleFonts.inter(
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
                           ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Company Information
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDetailItem('Mô tả', company.description ?? 'Chưa có mô tả'),
-                      _buildDetailItem('Website', company.formattedWebsite ?? 'Chưa có website'),
-                      _buildDetailItem('Mã số thuế', company.taxCode ?? 'Chưa cung cấp'),
-                      _buildDetailItem('Địa chỉ', company.location ?? 'Chưa cung cấp'),
-                      if (company.hasBusinessLicense)
-                        _buildDetailItem('Tình trạng', 'Đã xác thực - Có giấy phép kinh doanh'),
-                    ],
-                  ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Company Description
+                    if (company.description != null && company.description!.isNotEmpty)
+                      Text(
+                        _getShortDescription(company.description),
+                        style: GoogleFonts.inter(
+                          color: Colors.grey[600],
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Company Details
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        if (company.taxCode != null)
+                          _buildDetailChip('MST: ${company.taxCode}'),
+                        if (company.website != null)
+                          _buildDetailChip('Website: ${company.formattedWebsite}'),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // View Jobs Button
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 4),
+                      child: TextButton(
+                        onPressed: () => _navigateToCompanyJobs(company),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.blue[50],
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Xem công việc',
+                              style: GoogleFonts.inter(
+                                color: Colors.blue[700],
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.arrow_forward_rounded, 
+                                size: 14, color: Colors.blue[700]),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               
-              const SizedBox(height: 16),
-              
-              // Action Buttons
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await _navigateToCompanyJobs(company);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: _isNavigating
-                      ? const SizedBox(
+              // Loading overlay
+              if (_isNavigating)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withOpacity(0.1),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : Text(
-                          'Xem công việc của ${company.name}',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
+                            color: Colors.blue[400],
                           ),
                         ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _buildDetailItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
+  Widget _buildDetailChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.inter(
+          fontSize: 11,
+          color: Colors.grey[600],
+        ),
       ),
     );
   }

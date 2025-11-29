@@ -211,52 +211,17 @@ class _HomeTabState extends State<HomeTab> {
 
 class _PastelColors {
   static const Color primary = Color(0xFFA8D8EA);
-  static const Color secondary = Color(0xFFAA96DA);
-  static const Color accent = Color(0xFFFCBAD3);
-  static const Color yellow = Color(0xFFFFFDD2);
   static const Color background = Color(0xFFF8F9FA);
-  static const Color white = Color(0xFFFFFFFF);
-  static const Color dark = Color(0xFF2D3748);
   static const Color grey = Color(0xFF718096);
-  static const Color lightGrey = Color(0xFFA0AEC0);
 }
 
 class _TextStyles {
-  static final TextStyle displayLarge = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.w700,
-    color: _PastelColors.dark,
-  );
-
-  static final TextStyle displayMedium = TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.w700,
-    color: _PastelColors.dark,
-  );
-
-  static final TextStyle titleLarge = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    color: _PastelColors.dark,
-  );
-
-  static final TextStyle bodyLarge = TextStyle(
-    fontSize: 16,
-    color: _PastelColors.dark,
-  );
+  
 
   static final TextStyle bodyMedium = TextStyle(
     fontSize: 14,
     color: _PastelColors.grey,
   );
 
-  static final TextStyle bodySmall = TextStyle(
-    fontSize: 12,
-    color: _PastelColors.grey,
-  );
-
-  static final TextStyle caption = TextStyle(
-    fontSize: 11,
-    color: _PastelColors.lightGrey,
-  );
+  
 }

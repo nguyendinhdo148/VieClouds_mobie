@@ -175,11 +175,6 @@ class _AccountTabState extends State<AccountTab> {
         ),
       );
 
-      // Tạo tên file
-      final fileName = _currentUser?.profile?.resumeOriginalName ?? 
-          'CV_${_currentUser?.fullname}_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      
-      // Download file
       // TODO: Implement download functionality using dio or http
       // For now, we'll open the PDF in browser
       if (await canLaunchUrl(Uri.parse(resumeUrl))) {

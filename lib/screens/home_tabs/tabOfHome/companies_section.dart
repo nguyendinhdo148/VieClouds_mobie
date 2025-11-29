@@ -39,8 +39,8 @@ class CompaniesSection extends StatelessWidget {
               child: Text(
                 'Xem tất cả',
                 style: _TextStyles.bodyMedium.copyWith(
-                  color: _PastelColors.primary,
-                  fontWeight: FontWeight.w600,
+                  color: const Color.fromARGB(255, 0, 59, 210),
+                  fontWeight: FontWeight.w700, // ĐẬM HƠN
                 ),
               ),
             ),
@@ -57,10 +57,10 @@ class CompaniesSection extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, // Tăng lên 3 cột để hiển thị nhiều hơn
+        crossAxisCount: 3,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.9, // Điều chỉnh tỷ lệ cho đẹp
+        childAspectRatio: 0.9,
       ),
       itemCount: companies.length,
       itemBuilder: (context, index) {
@@ -100,7 +100,7 @@ class CompaniesSection extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo công ty - làm nổi bật hơn
+            // Logo công ty
             Container(
               width: 60,
               height: 60,
@@ -131,14 +131,14 @@ class CompaniesSection extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             
-            // Tên công ty - chỉ hiện tên
+            // Tên công ty - LÀM ĐẬM HƠN
             Expanded(
               child: Text(
                 company.name,
                 style: _TextStyles.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700, // ĐẬM HƠN (từ 600 lên 700)
                   color: _PastelColors.dark,
-                  fontSize: 13, // Nhỏ hơn một chút
+                  fontSize: 13,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -146,7 +146,7 @@ class CompaniesSection extends StatelessWidget {
               ),
             ),
             
-            // Badge nổi bật (nếu có)
+            // Badge nổi bật - LÀM ĐẬM HƠN
             if (isFeatured) ...[
               const SizedBox(height: 6),
               Container(
@@ -158,8 +158,8 @@ class CompaniesSection extends StatelessWidget {
                 child: Text(
                   'Nổi bật',
                   style: _TextStyles.caption.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: _PastelColors.yellow.withOpacity(0.8),
+                    fontWeight: FontWeight.w700, // ĐẬM HƠN (từ 500 lên 700)
+                    color: _PastelColors.yellow.withOpacity(0.9), // ĐẬM MÀU HƠN
                     fontSize: 10,
                   ),
                 ),
@@ -174,8 +174,6 @@ class CompaniesSection extends StatelessWidget {
 
 class _PastelColors {
   static const Color primary = Color(0xFFA8D8EA);
-  static const Color secondary = Color(0xFFAA96DA);
-  static const Color accent = Color(0xFFFCBAD3);
   static const Color yellow = Color(0xFFFFD166);
   static const Color white = Color(0xFFFFFFFF);
   static const Color dark = Color(0xFF2D3748);
@@ -185,17 +183,19 @@ class _PastelColors {
 class _TextStyles {
   static final TextStyle displayMedium = TextStyle(
     fontSize: 18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800, // ĐẬM HƠN (từ 700 lên 800)
     color: _PastelColors.dark,
   );
 
   static final TextStyle bodyMedium = TextStyle(
     fontSize: 14,
     color: _PastelColors.dark,
+    fontWeight: FontWeight.w600, // THÊM ĐẬM
   );
 
   static final TextStyle caption = TextStyle(
     fontSize: 12,
     color: _PastelColors.grey,
+    fontWeight: FontWeight.w600, // THÊM ĐẬM
   );
 }

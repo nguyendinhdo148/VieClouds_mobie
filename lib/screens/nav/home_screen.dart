@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
+import 'package:viejob_app/screens/Home_tab/blog/blog_page.dart';
+import 'package:viejob_app/screens/Home_tab/company/company_page.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../home_tabs/home_tab.dart';
 import '../home_tabs/reviewCV.dart';
-import '../home_tabs/connect_tab.dart';
-import '../home_tabs/notification_tab.dart';
 import '../home_tabs/account_tab.dart';
 
 
@@ -27,16 +27,16 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _tabs = [
     const HomeTab(),
     const ResumeReviewScreen(),
-    const ConnectTab(),
-    const NotificationTab(),
+    const CompanyPage(),
+    const BlogListPage(),
     const AccountTab(),
   ];
 
   final List<String> _tabTitles = [
     'Trang chủ',
     'Phân tích CV',
-    'Kết nối',
-    'Thông báo',
+    'Công ty',
+    'Blog',
     'Tài khoản'
   ];
 
@@ -174,17 +174,17 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.description_outlined),
             activeIcon: Icon(Icons.description),
-            label: 'CV & Hồ sơ',
+            label: 'Phân tích CV',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.business_outlined),
+            activeIcon: Icon(Icons.business),
+            label: 'Công ty',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.people_outline),
             activeIcon: Icon(Icons.people),
             label: 'Kết nối',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_outlined),
-            activeIcon: Icon(Icons.notifications),
-            label: 'Thông báo',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

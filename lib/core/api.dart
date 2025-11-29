@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
-import 'package:viejob_app/screens/auth/login_screen.dart';
 import '../config/api_config.dart';
 import 'secure_storage.dart';
 import 'package:flutter/material.dart';

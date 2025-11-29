@@ -72,4 +72,13 @@ class ApiConfig {
   static const String generateDescription = '/ai/generate-description';
   static const String chatWithAI = '/ai/chat_with_ai';
   static const String resumeReview = '/ai/resume-review';
+
+  // 🧠 MBTI (Myers-Briggs Type Indicator) ENDPOINTS
+  static const String mbtiBasicAnalysis = '/mbti/basic-analysis';
+  static const String mbtiAdvancedAnalysis = '/mbti/advanced-analysis';
+
+  // 🎯 MI (Multiple Intelligences - Đa trí thông minh) ENDPOINTS
+  static const String miBasicAnalysis = '/mi/basic-analysis';
+  static const String miAdvancedAnalysis = '/mi/advanced-analysis';
+  static const String miIntelligenceTypes = '/mi/intelligence-types';
 }

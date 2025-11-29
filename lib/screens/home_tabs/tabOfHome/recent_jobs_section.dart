@@ -119,8 +119,8 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
               child: Text(
                 'Xem tất cả',
                 style: _TextStyles.bodyMedium.copyWith(
-                  color: _PastelColors.primary,
-                  fontWeight: FontWeight.w600,
+                  color: const Color.fromARGB(255, 0, 59, 210),
+                  fontWeight: FontWeight.w700, // ĐẬM HƠN
                 ),
               ),
             ),
@@ -230,13 +230,15 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
                 children: [
                   Text(job.title,
                       style: _TextStyles.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w600),
+                          fontWeight: FontWeight.w700), // ĐẬM HƠN
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
                   Text(job.companyName,
-                      style: _TextStyles.bodySmall
-                          .copyWith(color: _PastelColors.grey)),
+                      style: _TextStyles.bodySmall.copyWith(
+                        color: _PastelColors.grey,
+                        fontWeight: FontWeight.w600, // ĐẬM HƠN
+                      )),
                   const SizedBox(height: 6),
 
                   Row(
@@ -246,7 +248,9 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(job.location,
-                            style: _TextStyles.caption,
+                            style: _TextStyles.caption.copyWith(
+                              fontWeight: FontWeight.w600, // ĐẬM HƠN
+                            ),
                             overflow: TextOverflow.ellipsis),
                       ),
                     ],
@@ -259,7 +263,11 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
                       Icon(Icons.attach_money,
                           size: 12, color: _PastelColors.accent),
                       const SizedBox(width: 4),
-                      Text(job.formattedSalary, style: _TextStyles.caption),
+                      Text(job.formattedSalary, 
+                          style: _TextStyles.caption.copyWith(
+                            fontWeight: FontWeight.w700, // ĐẬM HƠN
+                            color: Colors.green[700], // MÀU XANH ĐẬM ĐỂ NỔI BẬT
+                          )),
                     ],
                   ),
                 ],
@@ -281,16 +289,19 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
                   child: Text(
                     job.isActive ? 'Đang tuyển' : 'Đã đóng',
                     style: _TextStyles.caption.copyWith(
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w700, // ĐẬM HƠN
                       color: job.isActive
-                          ? _PastelColors.yellow
-                          : Colors.grey,
+                          ? Colors.green[700] // MÀU XANH ĐẬM CHO "ĐANG TUYỂN"
+                          : Colors.grey[700], // MÀU XÁM ĐẬM CHO "ĐÃ ĐÓNG"
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(job.timeAgo,
-                    style: _TextStyles.caption.copyWith(fontSize: 10)),
+                    style: _TextStyles.caption.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600, // ĐẬM HƠN
+                    )),
               ],
             ),
           ],
@@ -307,12 +318,18 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(job.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(job.title, style: const TextStyle(
+          fontWeight: FontWeight.w700, // ĐẬM HƠN
+          fontSize: 18,
+        )),
         content: SizedBox(width: double.maxFinite, child: JobDescriptionSection(job: job)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng', style: TextStyle(color: Colors.grey)),
+            child: const Text('Đóng', style: TextStyle(
+              color: Colors.grey,
+              fontWeight: FontWeight.w600, // ĐẬM HƠN
+            )),
           ),
 
           ElevatedButton(
@@ -325,7 +342,10 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
             style: ElevatedButton.styleFrom(
               backgroundColor: buttonColor,
             ),
-            child: Text(buttonText, style: const TextStyle(color: Colors.white)),
+            child: Text(buttonText, style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700, // ĐẬM HƠN
+            )),
           ),
         ],
       ),
@@ -336,12 +356,21 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xác nhận ứng tuyển', style: TextStyle(fontWeight: FontWeight.w600)),
-        content: Text("Bạn có chắc muốn ứng tuyển vào ${job.title}?"),
+        title: const Text('Xác nhận ứng tuyển', style: TextStyle(
+          fontWeight: FontWeight.w700, // ĐẬM HƠN
+          fontSize: 16,
+        )),
+        content: Text("Bạn có chắc muốn ứng tuyển vào ${job.title}?",
+          style: const TextStyle(
+            fontWeight: FontWeight.w600, // ĐẬM HƠN
+          )),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+            child: const Text('Hủy', style: TextStyle(
+              color: Colors.grey,
+              fontWeight: FontWeight.w600, // ĐẬM HƠN
+            )),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -351,7 +380,10 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
             ),
-            child: const Text('Xác nhận ứng tuyển', style: TextStyle(color: Colors.white)),
+            child: const Text('Xác nhận ứng tuyển', style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700, // ĐẬM HƠN
+            )),
           ),
         ],
       ),
@@ -369,7 +401,10 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Ứng tuyển thất bại'),
+            content: Text(result['message'] ?? 'Ứng tuyển thất bại',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600, // ĐẬM HƠN
+              )),
             backgroundColor: Colors.red,
           ),
         );
@@ -382,7 +417,10 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
   void _showApplicationSuccess(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Ứng tuyển thành công!'),
+        content: Text('Ứng tuyển thành công!',
+          style: TextStyle(
+            fontWeight: FontWeight.w700, // ĐẬM HƠN
+          )),
         backgroundColor: Colors.green,
       ),
     );
@@ -402,22 +440,25 @@ class _PastelColors {
 class _TextStyles {
   static final TextStyle displayMedium = TextStyle(
     fontSize: 18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800, // ĐẬM HƠN (từ 700 lên 800)
     color: _PastelColors.dark,
   );
 
   static final TextStyle bodyMedium = TextStyle(
     fontSize: 14,
     color: _PastelColors.dark,
+    fontWeight: FontWeight.w600, // THÊM ĐẬM
   );
 
   static final TextStyle bodySmall = TextStyle(
     fontSize: 12,
     color: _PastelColors.grey,
+    fontWeight: FontWeight.w500, // THÊM ĐẬM
   );
 
   static final TextStyle caption = TextStyle(
     fontSize: 11,
     color: _PastelColors.grey,
+    fontWeight: FontWeight.w500, // THÊM ĐẬM
   );
 }

@@ -1,7 +1,6 @@
-import 'dart:convert';
+
 import '../config/api_config.dart';
 import '../core/api.dart';
-import '../models/company_model.dart';
 
 class CompanyService {
   final ApiClient _api = ApiClient();

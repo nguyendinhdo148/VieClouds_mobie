@@ -11,10 +11,10 @@ class BlogService {
         'Content-Type': 'application/json',
       };
 
-  // Create blog
+  // Create blog - SỬA LẠI ĐỂ NHẬN HTML CONTENT
   Future<ApiResponse<BlogModel>> createBlog({
     required String title,
-    required String content,
+    required String content, // HTML content từ editor
     required String category,
     List<String>? tags,
     String? imagePath,
@@ -22,12 +22,12 @@ class BlogService {
     try {
       var formData = FormData.fromMap({
         'title': title,
-        'content': content,
+        'content': content, // Gửi HTML content
         'category': category,
         if (tags != null && tags.isNotEmpty)
-          'tags': tags.join(', '),
+          'tags': jsonEncode(tags), // Sửa thành JSON encode
         if (imagePath != null)
-          'image': await MultipartFile.fromFile(imagePath),
+          'file': await MultipartFile.fromFile(imagePath, filename: 'blog_image.jpg'),
       });
 
       final response = await _api.post(ApiConfig.createBlog, formData);
@@ -296,11 +296,11 @@ class BlogService {
     }
   }
 
-  // Update blog
+  // Update blog - SỬA LẠI ĐỂ NHẬN HTML CONTENT
   Future<ApiResponse<BlogModel>> updateBlog({
     required String id,
     required String title,
-    required String content,
+    required String content, // HTML content từ editor
     required String category,
     List<String>? tags,
     String? imagePath,
@@ -308,12 +308,12 @@ class BlogService {
     try {
       var formData = FormData.fromMap({
         'title': title,
-        'content': content,
+        'content': content, // Gửi HTML content
         'category': category,
         if (tags != null && tags.isNotEmpty)
-          'tags': tags.join(', '),
+          'tags': jsonEncode(tags), // Sửa thành JSON encode
         if (imagePath != null)
-          'image': await MultipartFile.fromFile(imagePath),
+          'file': await MultipartFile.fromFile(imagePath, filename: 'blog_image.jpg'),
       });
 
       final response = await _api.put(

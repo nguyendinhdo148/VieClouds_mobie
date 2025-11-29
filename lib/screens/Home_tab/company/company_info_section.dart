@@ -3,13 +3,26 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../models/company_model.dart';
 
-class CompanyInfoSection extends StatelessWidget {
+class CompanyInfoSection extends StatefulWidget {
   final CompanyModel company;
 
   const CompanyInfoSection({
     Key? key,
     required this.company,
   }) : super(key: key);
+
+  @override
+  State<CompanyInfoSection> createState() => _CompanyInfoSectionState();
+}
+
+class _CompanyInfoSectionState extends State<CompanyInfoSection> {
+  bool _isExpanded = false;
+
+  void _toggleExpand() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,18 +42,11 @@ class CompanyInfoSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header với Logo và Thông tin cơ bản
+          // Header với Logo và Thông tin cơ bản - LUÔN HIỂN THỊ
           _buildCompanyHeader(),
           
-          // Thông tin chi tiết công ty
-          if (company.description != null && company.description!.isNotEmpty)
-            _buildCompanyDescription(),
-          
-          // Thông tin liên hệ và pháp lý
-          _buildContactAndLegalInfo(),
-          
-          // Thống kê công ty
-          _buildCompanyStats(),
+          // Nội dung có thể thu gọn
+          if (_isExpanded) ..._buildExpandableContent(),
         ],
       ),
     );
@@ -55,9 +61,11 @@ class CompanyInfoSection extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [Colors.blue[50]!, Colors.white],
         ),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: _isExpanded ? Radius.zero : const Radius.circular(16),
+          bottomRight: _isExpanded ? Radius.zero : const Radius.circular(16),
         ),
       ),
       child: Row(
@@ -70,9 +78,9 @@ class CompanyInfoSection extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              image: company.hasLogo
+              image: widget.company.hasLogo
                   ? DecorationImage(
-                      image: NetworkImage(company.logo!),
+                      image: NetworkImage(widget.company.logo!),
                       fit: BoxFit.cover,
                     )
                   : null,
@@ -85,7 +93,7 @@ class CompanyInfoSection extends StatelessWidget {
               ],
               border: Border.all(color: Colors.blue[100]!),
             ),
-            child: company.hasLogo
+            child: widget.company.hasLogo
                 ? null
                 : Icon(Icons.business, color: Colors.blue[300], size: 40),
           ),
@@ -94,22 +102,45 @@ class CompanyInfoSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  company.name,
-                  style: GoogleFonts.inter(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.blue[900],
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.company.name,
+                        style: GoogleFonts.inter(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.blue[900],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // Nút thu gọn/mở rộng
+                    IconButton(
+                      onPressed: _toggleExpand,
+                      icon: Icon(
+                        _isExpanded 
+                            ? Icons.expand_less_rounded 
+                            : Icons.expand_more_rounded,
+                        color: Colors.blue[600],
+                        size: 24,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 
                 // Slug/ID công ty
-                if (company.slug != null)
+                if (widget.company.slug != null)
                   Text(
-                    'ID: ${company.slug!}',
+                    'ID: ${widget.company.slug!}',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -120,24 +151,24 @@ class CompanyInfoSection extends StatelessWidget {
                 const SizedBox(height: 8),
                 
                 // Địa chỉ
-                if (company.displayLocation != null)
+                if (widget.company.displayLocation != null)
                   _buildInfoRow(
                     Icons.location_on,
-                    company.displayLocation!,
+                    widget.company.displayLocation!,
                   ),
                 
                 // Lĩnh vực hoạt động
-                if (company.field != null && company.field!.isNotEmpty)
+                if (widget.company.field != null && widget.company.field!.isNotEmpty)
                   _buildInfoRow(
                     Icons.category,
-                    company.field!,
+                    widget.company.field!,
                   ),
                 
                 // User quản lý (nếu có)
-                if (company.userName != null)
+                if (widget.company.userName != null)
                   _buildInfoRow(
                     Icons.person,
-                    'Quản lý: ${company.userName!}',
+                    'Quản lý: ${widget.company.userName!}',
                   ),
               ],
             ),
@@ -145,6 +176,20 @@ class CompanyInfoSection extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<Widget> _buildExpandableContent() {
+    return [
+      // Thông tin chi tiết công ty
+      if (widget.company.description != null && widget.company.description!.isNotEmpty)
+        _buildCompanyDescription(),
+      
+      // Thông tin liên hệ và pháp lý
+      _buildContactAndLegalInfo(),
+      
+      // Thống kê công ty
+      _buildCompanyStats(),
+    ];
   }
 
   Widget _buildCompanyDescription() {
@@ -169,7 +214,7 @@ class CompanyInfoSection extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            company.description!,
+            widget.company.description!,
             style: GoogleFonts.inter(
               color: Colors.grey[700],
               fontSize: 14,
@@ -187,10 +232,8 @@ class CompanyInfoSection extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[200]!),
       ),
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -205,35 +248,35 @@ class CompanyInfoSection extends StatelessWidget {
           const SizedBox(height: 12),
           
           // Website
-          if (company.formattedWebsite != null)
+          if (widget.company.formattedWebsite != null)
             _buildClickableInfoRow(
               Icons.language,
               'Website',
-              company.formattedWebsite!,
-              onTap: () => _launchWebsite(company.formattedWebsite!),
+              widget.company.formattedWebsite!,
+              onTap: () => _launchWebsite(widget.company.formattedWebsite!),
             ),
           
           // Địa chỉ chi tiết
-          if (company.address != null && company.address != company.location)
+          if (widget.company.address != null && widget.company.address != widget.company.location)
             _buildInfoRow(
               Icons.home_work,
-              'Địa chỉ trụ sở: ${company.address!}',
+              'Địa chỉ trụ sở: ${widget.company.address!}',
             ),
           
           // Mã số thuế
-          if (company.taxCode != null)
+          if (widget.company.taxCode != null)
             _buildInfoRow(
               Icons.receipt_long,
-              'Mã số thuế: ${company.taxCode!}',
+              'Mã số thuế: ${widget.company.taxCode!}',
             ),
           
           // Giấy phép kinh doanh
-          if (company.hasBusinessLicense)
+          if (widget.company.hasBusinessLicense)
             _buildClickableInfoRow(
               Icons.assignment,
               'Giấy phép kinh doanh',
-              company.businessLicense!,
-              onTap: () => _launchWebsite(company.businessLicense!),
+              widget.company.businessLicense!,
+              onTap: () => _launchWebsite(widget.company.businessLicense!),
             ),
         ],
       ),
@@ -241,7 +284,7 @@ class CompanyInfoSection extends StatelessWidget {
   }
 
   Widget _buildCompanyStats() {
-    final stats = company.companyStats;
+    final stats = widget.company.companyStats;
     if (stats.isEmpty) return const SizedBox();
 
     return Container(
@@ -283,7 +326,7 @@ class CompanyInfoSection extends StatelessWidget {
           
           // Ngày tạo/cập nhật
           const SizedBox(height: 16),
-          if (company.createdAt != null || company.updatedAt != null)
+          if (widget.company.createdAt != null || widget.company.updatedAt != null)
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -371,12 +414,12 @@ class CompanyInfoSection extends StatelessWidget {
 
   String _buildDateInfo() {
     String info = '';
-    if (company.createdAt != null) {
-      info += 'Tạo: ${_formatDate(company.createdAt!)}';
+    if (widget.company.createdAt != null) {
+      info += 'Tạo: ${_formatDate(widget.company.createdAt!)}';
     }
-    if (company.updatedAt != null) {
+    if (widget.company.updatedAt != null) {
       if (info.isNotEmpty) info += ' • ';
-      info += 'Cập nhật: ${_formatDate(company.updatedAt!)}';
+      info += 'Cập nhật: ${_formatDate(widget.company.updatedAt!)}';
     }
     return info;
   }

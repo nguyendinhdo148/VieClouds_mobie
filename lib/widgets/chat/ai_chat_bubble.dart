@@ -23,7 +23,6 @@ class AIChatBubble extends StatelessWidget {
   }
 
   Widget _buildBotMessage(String text) {
-    final lines = text.split('\n');
     
     // Kiểm tra nếu là danh sách công việc
     if (text.startsWith("Dưới đây là một số việc làm") || 

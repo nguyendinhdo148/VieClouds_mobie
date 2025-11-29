@@ -42,6 +42,38 @@ Map<String, dynamic> _$BlogModelToJson(BlogModel instance) => <String, dynamic>{
   'updatedAt': instance.updatedAt?.toIso8601String(),
 };
 
+BlogAuthor _$BlogAuthorFromJson(Map<String, dynamic> json) => BlogAuthor(
+  id: json['_id'] as String,
+  fullname: json['fullname'] as String? ?? '',
+  email: json['email'] as String? ?? '',
+  profile: BlogAuthor._parseProfile(json['profile']),
+);
+
+Map<String, dynamic> _$BlogAuthorToJson(BlogAuthor instance) =>
+    <String, dynamic>{
+      '_id': instance.id,
+      'fullname': instance.fullname,
+      'email': instance.email,
+      'profile': instance.profile,
+    };
+
+BlogProfile _$BlogProfileFromJson(Map<String, dynamic> json) => BlogProfile(
+  bio: json['bio'] as String? ?? '',
+  profilePhoto: BlogProfile._parseProfilePhoto(json['profilePhoto']),
+);
+
+Map<String, dynamic> _$BlogProfileToJson(BlogProfile instance) =>
+    <String, dynamic>{
+      'bio': instance.bio,
+      'profilePhoto': instance.profilePhoto,
+    };
+
+BlogProfilePhoto _$BlogProfilePhotoFromJson(Map<String, dynamic> json) =>
+    BlogProfilePhoto(url: json['url'] as String? ?? '');
+
+Map<String, dynamic> _$BlogProfilePhotoToJson(BlogProfilePhoto instance) =>
+    <String, dynamic>{'url': instance.url};
+
 BlogImage _$BlogImageFromJson(Map<String, dynamic> json) => BlogImage(
   url: json['url'] as String,
   publicId: json['public_id'] as String,

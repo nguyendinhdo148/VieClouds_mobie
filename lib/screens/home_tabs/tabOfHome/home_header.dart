@@ -213,20 +213,13 @@ class _HomeHeaderState extends State<HomeHeader> {
 class _VibrantColors {
   static const Color blue = Color(0xFF4361EE);
   static const Color purple = Color(0xFF7209B7);
-  static const Color pink = Color(0xFFF72585);
-  static const Color orange = Color(0xFFFB5607);
-  static const Color white = Color(0xFFFFFFFF);
   static const Color dark = Color(0xFF2D3748);
   static const Color grey = Color(0xFF718096);
   static const Color lightGrey = Color(0xFFA0AEC0);
 }
 
 class _TextStyles {
-  static final TextStyle displayLarge = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.w700,
-    color: _VibrantColors.dark,
-  );
+  
 
   static final TextStyle bodyLarge = TextStyle(
     fontSize: 16,
