@@ -38,7 +38,7 @@ class ApiConfig {
   static const String createJob = '/job/create-job';
   static const String updateJob = '/job/update-job'; // /job/update-job/:id
   static const String deleteJob = '/job/delete-job'; // /job/delete-job/:id
-  static const String jobSuggestions = '/job/suggestions';
+  static const String jobSuggestions = '/job/suggestions'; // ✅ ĐÚNG
 
   // 🏢 COMPANY ENDPOINTS
   static const String getAllCompanies = '/company/public/all';
@@ -49,6 +49,7 @@ class ApiConfig {
   static const String getCompanyDetails = '/company/detail';
 
   // 🧾 APPLICATION (Ứng tuyển) ENDPOINTS
+  
   static const String applyJob = '/application/apply-job'; // + '/:id'
   static const String getAppliedJobs = '/application/applied-jobs';
   static const String getApplicants = '/application/applicants'; // + '/:id'

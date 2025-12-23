@@ -8,10 +8,12 @@ class CompoundInterestCalculator extends StatefulWidget {
   const CompoundInterestCalculator({super.key});
 
   @override
-  State<CompoundInterestCalculator> createState() => _CompoundInterestCalculatorState();
+  State<CompoundInterestCalculator> createState() =>
+      _CompoundInterestCalculatorState();
 }
 
-class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator> {
+class _CompoundInterestCalculatorState
+    extends State<CompoundInterestCalculator> {
   double _principal = 10000000;
   double _monthlyContribution = 1000000;
   int _years = 10;
@@ -20,12 +22,12 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
 
   List<ChartData> _chartData = [];
   CalculationResult _result = CalculationResult(0, 0, 0);
-  
+
   // State for expandable sections
   bool _showFullFormula = false;
   bool _showFullTips = false;
   bool _showFullFAQ = false;
-  
+
   // For chart interaction
   int? _selectedIndex;
 
@@ -62,15 +64,24 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
     final r = _interestRate / 100;
     final t = _years;
     int n = 1;
-    
+
     switch (_compoundingFrequency) {
-      case "daily": n = 365; break;
-      case "monthly": n = 12; break;
-      case "quarterly": n = 4; break;
-      case "yearly": n = 1; break;
-      default: n = 1;
+      case "daily":
+        n = 365;
+        break;
+      case "monthly":
+        n = 12;
+        break;
+      case "quarterly":
+        n = 4;
+        break;
+      case "yearly":
+        n = 1;
+        break;
+      default:
+        n = 1;
     }
-    
+
     final PMT = _monthlyContribution;
     double balance = P;
     final chartData = <ChartData>[];
@@ -85,13 +96,10 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
       }
 
       final totalContributions = P + PMT * 12 * year;
-      
-      chartData.add(ChartData(
-        year.toDouble(),
-        P,
-        totalContributions - P,
-        balance,
-      ));
+
+      chartData.add(
+        ChartData(year.toDouble(), P, totalContributions - P, balance),
+      );
     }
 
     setState(() {
@@ -124,40 +132,40 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
       ),
       backgroundColor: Colors.blue.shade50,
       body: SingleChildScrollView(
-         padding: const EdgeInsets.all(16),
-         child: Column(
-           children: [
-             // Input Form
-             _buildInputForm(),
-             const SizedBox(height: 16),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Input Form
+            _buildInputForm(),
+            const SizedBox(height: 16),
 
-                    // Results
-                    _buildResults(),
-                    const SizedBox(height: 16),
+            // Results
+            _buildResults(),
+            const SizedBox(height: 16),
 
-                    // Chart Section
-                    _buildChartSection(),
-                    const SizedBox(height: 16),
+            // Chart Section
+            _buildChartSection(),
+            const SizedBox(height: 16),
 
-                    // Comparison Section
-                    _buildComparisonSection(),
-                    const SizedBox(height: 16),
+            // Comparison Section
+            _buildComparisonSection(),
+            const SizedBox(height: 16),
 
-                    // Tips Section
-                    _buildTipsSection(),
-                    const SizedBox(height: 16),
+            // Tips Section
+            _buildTipsSection(),
+            const SizedBox(height: 16),
 
-                    // FAQ Section
-                    _buildFAQSection(),
-                    const SizedBox(height: 16),
+            // FAQ Section
+            _buildFAQSection(),
+            const SizedBox(height: 16),
 
-                    // Disclaimer
-                    _buildDisclaimer(),
-           ],
-         ),
-       ),
-     );
-   }
+            // Disclaimer
+            _buildDisclaimer(),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildInputForm() {
     return Card(
@@ -175,8 +183,10 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
               label: 'Tiền gốc ban đầu (VNĐ)',
               value: _principal,
               onChanged: (value) {
-                setState(() => _principal = value);
-                _calculate();
+                if (mounted) {
+                  setState(() => _principal = value);
+                  _calculate();
+                }
               },
               icon: Icons.attach_money,
               formatter: formatDisplayValue,
@@ -188,8 +198,10 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
               label: 'Gửi thêm mỗi tháng (VNĐ)',
               value: _monthlyContribution,
               onChanged: (value) {
-                setState(() => _monthlyContribution = value);
-                _calculate();
+                if (mounted) {
+                  setState(() => _monthlyContribution = value);
+                  _calculate();
+                }
               },
               icon: Icons.savings,
               formatter: formatDisplayValue,
@@ -203,8 +215,10 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
               min: 1,
               max: 50,
               onChanged: (value) {
-                setState(() => _years = value.toInt());
-                _calculate();
+                if (mounted) {
+                  setState(() => _years = value.toInt());
+                  _calculate();
+                }
               },
             ),
             const SizedBox(height: 12),
@@ -217,8 +231,10 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
               max: 30,
               divisions: 300,
               onChanged: (value) {
-                setState(() => _interestRate = value);
-                _calculate();
+                if (mounted) {
+                  setState(() => _interestRate = value);
+                  _calculate();
+                }
               },
             ),
             const SizedBox(height: 12),
@@ -253,7 +269,10 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
           decoration: InputDecoration(
             prefixIcon: Icon(icon, size: 20),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
           ),
         ),
       ],
@@ -285,10 +304,7 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('${min.toInt()}'),
-            Text('${max.toInt()}'),
-          ],
+          children: [Text('${min.toInt()}'), Text('${max.toInt()}')],
         ),
       ],
     );
@@ -306,10 +322,12 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
         DropdownButtonFormField<String>(
           value: _compoundingFrequency,
           onChanged: (String? newValue) {
-            setState(() {
-              _compoundingFrequency = newValue!;
-              _calculate();
-            });
+            if (mounted) {
+              setState(() {
+                _compoundingFrequency = newValue!;
+                _calculate();
+              });
+            }
           },
           items: const [
             DropdownMenuItem(value: "yearly", child: Text("Hàng năm")),
@@ -446,7 +464,12 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
     );
   }
 
-  Widget _buildResultItem(String title, String value, Color color, IconData icon) {
+  Widget _buildResultItem(
+    String title,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -466,7 +489,11 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
           const SizedBox(height: 4),
           Text(
             value,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -480,8 +507,13 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$symbol: ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-          Expanded(child: Text(description, style: const TextStyle(fontSize: 12))),
+          Text(
+            '$symbol: ',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+          Expanded(
+            child: Text(description, style: const TextStyle(fontSize: 12)),
+          ),
         ],
       ),
     );
@@ -504,7 +536,11 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
                     color: Colors.green,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.trending_up, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.trending_up,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -522,58 +558,69 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 400,
-              child: SfCartesianChart(
-                onChartTouchInteractionDown: (ChartTouchInteractionArgs args) {
-                  if (args.position != null) {
-                    _handleChartTap(args.position!);
-                  }
-                },
-                title: ChartTitle(
-                  text: 'Sự tăng trưởng kỳ diệu của lãi kép qua thời gian',
-                ),
-                legend: Legend(isVisible: true, position: LegendPosition.top),
-                primaryXAxis: NumericAxis(
-                  title: AxisTitle(text: 'Năm'),
-                ),
-                primaryYAxis: NumericAxis(
-                  numberFormat: NumberFormat.compact(),
-                  title: AxisTitle(text: 'Giá trị (VNĐ)'),
-                ),
-                series: [
-                  LineSeries<ChartData, double>(
-                    name: 'Tiền gốc',
-                    dataSource: _chartData,
-                    xValueMapper: (ChartData data, _) => data.year,
-                    yValueMapper: (ChartData data, _) => data.principal,
-                    color: const Color.fromRGBO(75, 192, 192, 1),
-                    markerSettings: const MarkerSettings(isVisible: true),
+            if (_chartData.isNotEmpty)
+              RepaintBoundary(
+                child: SizedBox(
+                  height: 400,
+                  child: SfCartesianChart(
+                    onChartTouchInteractionDown: (ChartTouchInteractionArgs args) {
+                      if (mounted) {
+                        _handleChartTap(args.position);
+                      }
+                    },
+                    title: ChartTitle(
+                      text: 'Sự tăng trưởng kỳ diệu của lãi kép qua thời gian',
+                    ),
+                    legend: Legend(isVisible: true, position: LegendPosition.top),
+                    primaryXAxis: NumericAxis(title: AxisTitle(text: 'Năm')),
+                    primaryYAxis: NumericAxis(
+                      numberFormat: NumberFormat.compact(),
+                      title: AxisTitle(text: 'Giá trị (VNĐ)'),
+                    ),
+                    series: [
+                      LineSeries<ChartData, double>(
+                        name: 'Tiền gốc',
+                        dataSource: _chartData,
+                        xValueMapper: (ChartData data, _) => data.year,
+                        yValueMapper: (ChartData data, _) => data.principal,
+                        color: const Color.fromRGBO(75, 192, 192, 1),
+                        markerSettings: const MarkerSettings(isVisible: true),
+                      ),
+                      LineSeries<ChartData, double>(
+                        name: 'Tiền lãi',
+                        dataSource: _chartData,
+                        xValueMapper: (ChartData data, _) => data.year,
+                        yValueMapper: (ChartData data, _) => data.interest,
+                        color: const Color.fromRGBO(53, 162, 235, 1),
+                        markerSettings: const MarkerSettings(isVisible: true),
+                      ),
+                      LineSeries<ChartData, double>(
+                        name: 'Tổng giá trị',
+                        dataSource: _chartData,
+                        xValueMapper: (ChartData data, _) => data.year,
+                        yValueMapper: (ChartData data, _) => data.total,
+                        color: const Color.fromRGBO(255, 99, 132, 1),
+                        markerSettings: const MarkerSettings(isVisible: true),
+                      ),
+                    ],
+                    tooltipBehavior: TooltipBehavior(
+                      enable: true,
+                      format: 'point.x năm\npoint.y VNĐ',
+                    ),
                   ),
-                  LineSeries<ChartData, double>(
-                    name: 'Tiền lãi',
-                    dataSource: _chartData,
-                    xValueMapper: (ChartData data, _) => data.year,
-                    yValueMapper: (ChartData data, _) => data.interest,
-                    color: const Color.fromRGBO(53, 162, 235, 1),
-                    markerSettings: const MarkerSettings(isVisible: true),
+                ),
+              )
+            else
+              SizedBox(
+                height: 200,
+                child: Center(
+                  child: Text(
+                    'Đang tải biểu đồ...',
+                    style: TextStyle(color: Colors.grey[500]),
                   ),
-                  LineSeries<ChartData, double>(
-                    name: 'Tổng giá trị',
-                    dataSource: _chartData,
-                    xValueMapper: (ChartData data, _) => data.year,
-                    yValueMapper: (ChartData data, _) => data.total,
-                    color: const Color.fromRGBO(255, 99, 132, 1),
-                    markerSettings: const MarkerSettings(isVisible: true),
-                  ),
-                ],
-                tooltipBehavior: TooltipBehavior(
-                  enable: true,
-                  format: 'point.x năm\npoint.y VNĐ',
                 ),
               ),
-            ),
-            
+
             // Hiển thị giá trị khi click
             if (_selectedIndex != null && _selectedIndex! < _chartData.length)
               _buildSelectedPointInfo(),
@@ -586,11 +633,11 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
   void _handleChartTap(Offset position) {
     // Tính toán index dựa trên vị trí tap
     if (_chartData.isEmpty) return;
-    
+
     final chartWidth = 400.0; // Chiều rộng ước tính của chart
     final xStep = chartWidth / (_chartData.length - 1);
     final tappedIndex = (position.dx / xStep).round();
-    
+
     if (tappedIndex >= 0 && tappedIndex < _chartData.length) {
       setState(() {
         _selectedIndex = tappedIndex;
@@ -678,7 +725,7 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
           children: [
             _buildSectionTitle('Lãi đơn vs Lãi kép', Icons.compare),
             const SizedBox(height: 12),
-            
+
             _buildComparisonItem(
               'Lãi đơn',
               Icons.trending_down,
@@ -687,7 +734,7 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
               '100 triệu × 8% × 10 năm = 180 triệu',
             ),
             const SizedBox(height: 12),
-            
+
             _buildComparisonItem(
               'Lãi kép',
               Icons.trending_up,
@@ -695,7 +742,7 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
               'Lãi được cộng dồn vào gốc',
               '100 triệu × (1.08)¹⁰ = 216 triệu',
             ),
-            
+
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -715,7 +762,13 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
     );
   }
 
-  Widget _buildComparisonItem(String title, IconData icon, Color color, String desc, String example) {
+  Widget _buildComparisonItem(
+    String title,
+    IconData icon,
+    Color color,
+    String desc,
+    String example,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -730,10 +783,20 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+                Text(
+                  title,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: color),
+                ),
                 Text(desc, style: const TextStyle(fontSize: 12)),
                 const SizedBox(height: 4),
-                Text(example, style: TextStyle(fontSize: 11, color: color, fontFamily: 'monospace')),
+                Text(
+                  example,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: color,
+                    fontFamily: 'monospace',
+                  ),
+                ),
               ],
             ),
           ),
@@ -766,16 +829,22 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
           children: [
             _buildSectionTitle('Bí quyết đầu tư', Icons.lightbulb),
             const SizedBox(height: 12),
-            
-            ...(_showFullTips ? fullTips : shortTips).map((tip) => 
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text('• $tip', style: const TextStyle(fontSize: 12)),
-              ),
-            ).toList(),
+
+            ...(_showFullTips ? fullTips : shortTips)
+                .map(
+                  (tip) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text('• $tip', style: const TextStyle(fontSize: 12)),
+                  ),
+                )
+                .toList(),
 
             GestureDetector(
-              onTap: () => setState(() => _showFullTips = !_showFullTips),
+              onTap: () {
+                if (mounted) {
+                  setState(() => _showFullTips = !_showFullTips);
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
@@ -807,15 +876,18 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
     final faqs = [
       {
         'question': 'Lãi suất bao nhiêu là hợp lý?',
-        'answer': '• Tiết kiệm ngân hàng: 4-6%/năm\n• Trái phiếu: 6-8%/năm\n• Quỹ đầu tư: 8-12%/năm\n• Cổ phiếu: 10-15%/năm'
+        'answer':
+            '• Tiết kiệm ngân hàng: 4-6%/năm\n• Trái phiếu: 6-8%/năm\n• Quỹ đầu tư: 8-12%/năm\n• Cổ phiếu: 10-15%/năm',
       },
       {
         'question': 'Nên bắt đầu với bao nhiêu tiền?',
-        'answer': 'Không cần số tiền lớn. Quan trọng là tính đều đặn. Bắt đầu với 500.000-1.000.000 VNĐ/tháng.'
+        'answer':
+            'Không cần số tiền lớn. Quan trọng là tính đều đặn. Bắt đầu với 500.000-1.000.000 VNĐ/tháng.',
       },
       {
         'question': 'Có rủi ro gì khi đầu tư dài hạn?',
-        'answer': '• Rủi ro lạm phát\n• Rủi ro thanh khoản\n• Rủi ro thị trường\n→ Đa dạng hóa danh mục'
+        'answer':
+            '• Rủi ro lạm phát\n• Rủi ro thanh khoản\n• Rủi ro thị trường\n→ Đa dạng hóa danh mục',
       },
     ];
 
@@ -828,34 +900,36 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
           children: [
             _buildSectionTitle('Câu hỏi thường gặp', Icons.help),
             const SizedBox(height: 12),
-            
-            ...faqs.take(_showFullFAQ ? faqs.length : 2).map((faq) => 
-              _buildFAQItem(faq['question']!, faq['answer']!),
-            ).toList(),
 
-            if (faqs.length > 2) GestureDetector(
-              onTap: () => setState(() => _showFullFAQ = !_showFullFAQ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _showFullFAQ ? 'Thu gọn' : 'Xem thêm câu hỏi',
-                      style: TextStyle(
-                        color: Colors.blue.shade700,
-                        fontWeight: FontWeight.w500,
+            ...faqs
+                .take(_showFullFAQ ? faqs.length : 2)
+                .map((faq) => _buildFAQItem(faq['question']!, faq['answer']!))
+                .toList(),
+
+            if (faqs.length > 2)
+              GestureDetector(
+                onTap: () => setState(() => _showFullFAQ = !_showFullFAQ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _showFullFAQ ? 'Thu gọn' : 'Xem thêm câu hỏi',
+                        style: TextStyle(
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    Icon(
-                      _showFullFAQ ? Icons.expand_less : Icons.expand_more,
-                      color: Colors.blue.shade700,
-                      size: 16,
-                    ),
-                  ],
+                      Icon(
+                        _showFullFAQ ? Icons.expand_less : Icons.expand_more,
+                        color: Colors.blue.shade700,
+                        size: 16,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -913,7 +987,11 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.indigo,
+          ),
         ),
       ],
     );
@@ -933,16 +1011,24 @@ class _CompoundInterestCalculatorState extends State<CompoundInterestCalculator>
       child: Column(
         children: [
           ListTile(
-            title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            title: Text(
+              title,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
             trailing: Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
-            onTap: onTap,
+            onTap: () {
+              if (mounted) {
+                onTap();
+              }
+            },
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             dense: true,
           ),
-          if (isExpanded) Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: child,
-          ),
+          if (isExpanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: child,
+            ),
         ],
       ),
     );

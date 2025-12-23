@@ -33,7 +33,6 @@ class _PersonalTaxCalcState extends State<PersonalTaxCalc> {
   };
 
   // Constants
-  final int _baseSalary = 4680000;
   final int _maxSocialInsurance = 4680000 * 10;
   final int _maxHealthInsurance = 4680000 * 10;
   final int _personalDeduction = 11000000;

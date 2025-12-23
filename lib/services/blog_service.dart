@@ -7,9 +7,6 @@ import '../core/api.dart';
 class BlogService {
   final ApiClient _api = ApiClient();
 
-  Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-      };
 
   // Create blog - SỬA LẠI ĐỂ NHẬN HTML CONTENT
   Future<ApiResponse<BlogModel>> createBlog({
@@ -162,7 +159,7 @@ class BlogService {
             
             print('   📍 Blog $i:');
             print('      - Type: ${blogJson.runtimeType}');
-            print('      - Keys: ${blogJson is Map ? (blogJson as Map).keys.toList() : "N/A"}');
+            print('      - Keys: ${blogJson is Map ? (blogJson).keys.toList() : "N/A"}');
             
             // Validate before parsing
             if (blogJson is! Map<String, dynamic>) {

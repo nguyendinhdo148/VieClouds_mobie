@@ -6,7 +6,7 @@ import '../../widgets/custom_textfield.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  final VoidCallback onLoginSuccess;
+  final Function(String role) onLoginSuccess; // Thay đổi callback
   
   const LoginScreen({Key? key, required this.onLoginSuccess}) : super(key: key);
 
@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (result['success'] == true) {
       if (mounted) {
-        widget.onLoginSuccess();
+        widget.onLoginSuccess(_selectedRole); // Truyền role vào callback
       }
     } else {
       setState(() {
@@ -270,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => RegisterScreen(
-                              onRegisterSuccess: widget.onLoginSuccess,
+                              onRegisterSuccess: () => widget.onLoginSuccess('student'),
                             ),
                           ),
                         );

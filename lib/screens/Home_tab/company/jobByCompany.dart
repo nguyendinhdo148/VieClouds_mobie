@@ -26,7 +26,6 @@ class _JobByCompanyScreenState extends State<JobByCompanyScreen> {
   List<JobModel> _jobs = [];
   List<ApplicationModel> _appliedJobs = [];
   bool _isLoading = true;
-  bool _isLoadingApplications = true;
   String _errorMessage = '';
   int _currentPage = 1;
   bool _hasMore = true;
@@ -101,7 +100,6 @@ class _JobByCompanyScreenState extends State<JobByCompanyScreen> {
       print('❌ Error loading applied jobs: $e');
     } finally {
       setState(() {
-        _isLoadingApplications = false;
       });
     }
   }

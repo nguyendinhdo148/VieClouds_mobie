@@ -27,7 +27,7 @@ CompanyModel _$CompanyModelFromJson(Map<String, dynamic> json) => CompanyModel(
       : DateTime.parse(json['createdAt'] as String),
   updatedAt: json['updatedAt'] == null
       ? null
-      : DateTime.parse(json['updatedAt'] as String),
+      : DateTime.parse(json['updatedAt'] as String), status: '', approval: '', createdBy: '',
 );
 
 Map<String, dynamic> _$CompanyModelToJson(CompanyModel instance) =>

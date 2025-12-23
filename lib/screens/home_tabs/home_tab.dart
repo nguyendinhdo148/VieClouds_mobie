@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:viejob_app/screens/home_tabs/tabOfHome/home_header.dart';
 import 'package:viejob_app/screens/home_tabs/tabOfHome/quick_actions.dart';
 import 'package:viejob_app/screens/home_tabs/tabOfHome/recent_jobs_section.dart';
-import 'package:viejob_app/screens/home_tabs/tabOfHome/companies_section.dart'; // Đảm bảo import đúng
+import 'package:viejob_app/screens/home_tabs/tabOfHome/companies_section.dart';
+// THÊM IMPORT NÀY
 import '../../services/job_service.dart';
 import '../../services/company_service.dart';
 import '../../models/job_model.dart';
@@ -175,8 +176,10 @@ class _HomeTabState extends State<HomeTab> {
                   children: [
                     // Header với Logo
                     HomeHeader(
-                      onSearch: (query) {
-                        // Xử lý tìm kiếm
+                      onSearch: (context, query) {
+                        // Xử lý tìm kiếm ở đây (nếu cần)
+                        // Nhưng thực tế trong HomeHeader đã có Navigator.push
+                        print('Search query from HomeHeader: $query');
                       },
                     ),
                     const SizedBox(height: 28),
@@ -216,12 +219,8 @@ class _PastelColors {
 }
 
 class _TextStyles {
-  
-
   static final TextStyle bodyMedium = TextStyle(
     fontSize: 14,
     color: _PastelColors.grey,
   );
-
-  
 }

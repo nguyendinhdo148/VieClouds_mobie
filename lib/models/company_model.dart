@@ -72,7 +72,7 @@ class CompanyModel {
     required this.userId,
     this.user,
     this.createdAt,
-    this.updatedAt,
+    this.updatedAt, required String status, required String approval, String? approvalNote, required String createdBy,
   });
 
   factory CompanyModel.fromJson(Map<String, dynamic> json) =>

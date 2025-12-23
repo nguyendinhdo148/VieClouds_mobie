@@ -31,7 +31,7 @@ class JobListSection extends StatelessWidget {
     required this.hasAppliedToJob,
     required this.getApplyButtonText,
     required this.getApplyButtonColor,
-    required this.canApply,
+    required this.canApply, required String searchQuery,
   }) : super(key: key);
 
   @override

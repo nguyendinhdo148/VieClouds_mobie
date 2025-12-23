@@ -37,7 +37,7 @@ class _UpdateProfileDialogState extends State<UpdateProfileDialog> {
     super.initState();
     _fullnameController = TextEditingController(text: widget.user.fullname);
     _bioController = TextEditingController(text: widget.user.profile?.bio ?? '');
-    _phoneController = TextEditingController(text: widget.user.phoneNumber ?? '');
+    _phoneController = TextEditingController(text: widget.user.phoneNumber);
     _skillsController = TextEditingController(
       text: widget.user.profile?.skills?.join(", ") ?? ''
     );

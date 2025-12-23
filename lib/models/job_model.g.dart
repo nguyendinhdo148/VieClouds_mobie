@@ -7,31 +7,29 @@ part of 'job_model.dart';
 // **************************************************************************
 
 JobModel _$JobModelFromJson(Map<String, dynamic> json) => JobModel(
-  id: json['_id'] as String,
-  title: json['title'] as String,
-  description: json['description'] as String,
-  requirements: (json['requirements'] as List<dynamic>)
-      .map((e) => e as String)
-      .toList(),
-  salary: (json['salary'] as num).toDouble(),
-  experienceLevel: (json['experienceLevel'] as num).toInt(),
-  benefits: (json['benefits'] as List<dynamic>)
-      .map((e) => e as String)
-      .toList(),
-  location: json['location'] as String,
-  jobType: json['jobType'] as String,
-  position: (json['position'] as num).toInt(),
-  status: json['status'] as String,
-  approval: json['approval'] as String,
-  approvalNote: json['approvalNote'] as String,
-  category: json['category'] as String,
+  id: json['_id'] as String? ?? '',
+  title: json['title'] as String? ?? '',
+  description: json['description'] as String? ?? '',
+  requirements: (json['requirements'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+  salary: (json['salary'] as num?)?.toDouble() ?? 0.0,
+  experienceLevel: (json['experienceLevel'] as num?)?.toInt() ?? 0,
+  benefits: (json['benefits'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+  location: json['location'] as String? ?? '',
+  jobType: json['jobType'] as String? ?? '',
+  position: (json['position'] as num?)?.toInt() ?? 1,
+  status: json['status'] as String? ?? 'draft',
+  approval: json['approval'] as String? ?? 'pending',
+  approvalNote: json['approvalNote'] as String? ?? '',
+  category: json['category'] as String? ?? '',
   createdBy: JobModel._parseCreatedBy(json['created_by']),
-  applications: (json['applications'] as List<dynamic>)
-      .map((e) => e as String)
-      .toList(),
+  applications: (json['applications'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
   interviewTest: json['interviewTest'] as String?,
-  createdAt: DateTime.parse(json['createdAt'] as String),
-  updatedAt: DateTime.parse(json['updatedAt'] as String),
+  createdAt: json['createdAt'] == null
+      ? DateTime.now()
+      : DateTime.parse(json['createdAt'] as String),
+  updatedAt: json['updatedAt'] == null
+      ? DateTime.now()
+      : DateTime.parse(json['updatedAt'] as String),
   companyInfo: json['companyInfo'] == null
       ? null
       : CompanyModel.fromJson(json['companyInfo'] as Map<String, dynamic>),

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:viejob_app/screens/home_tabs/tabOfHome/search_suggestions.dart';
+// THÊM IMPORT NÀY
+import 'package:viejob_app/screens/Home_tab/job/find_job.dart';
 
 class HomeHeader extends StatefulWidget {
-  final Function(String) onSearch;
+  // Sửa lại hàm onSearch để nhận BuildContext
+  final Function(BuildContext, String) onSearch;
 
   const HomeHeader({
     Key? key,
@@ -19,7 +22,16 @@ class _HomeHeaderState extends State<HomeHeader> {
 
   void _searchJobs() {
     if (_searchController.text.isNotEmpty) {
-      widget.onSearch(_searchController.text);
+      // Dẫn đến FindJobScreen với từ khóa tìm kiếm
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FindJobScreen(
+            initialSearch: _searchController.text,
+          ),
+        ),
+      );
+      _hideSuggestions();
     }
   }
 
@@ -191,7 +203,16 @@ class _HomeHeaderState extends State<HomeHeader> {
                     searchText: _searchController.text,
                     onSuggestionTap: (suggestion) {
                       _searchController.text = suggestion;
-                      _searchJobs();
+                      // Điều hướng ngay khi chọn suggestion
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FindJobScreen(
+                            initialSearch: suggestion,
+                          ),
+                        ),
+                      );
+                      _hideSuggestions();
                     },
                   ),
                 ),
@@ -219,8 +240,6 @@ class _VibrantColors {
 }
 
 class _TextStyles {
-  
-
   static final TextStyle bodyLarge = TextStyle(
     fontSize: 16,
     color: _VibrantColors.dark,

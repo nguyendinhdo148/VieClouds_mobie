@@ -47,6 +47,8 @@ class UserModel {
 
   // 👉 Helper convert int -> String
   static String _toString(dynamic value) => value?.toString() ?? '';
+
+  void operator [](String other) {}
 }
 
 @JsonSerializable()

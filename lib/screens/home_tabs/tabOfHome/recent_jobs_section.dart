@@ -23,7 +23,6 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
 
   final ApplicationService _applicationService = ApplicationService();
   List<ApplicationModel> _appliedJobs = [];
-  bool _isLoadingApplications = true;
 
   @override
   void initState() {
@@ -41,7 +40,6 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
       print("Error loading applied jobs: $e");
     } finally {
       setState(() {
-        _isLoadingApplications = false;
       });
     }
   }

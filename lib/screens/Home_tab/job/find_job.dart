@@ -1,8 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:viejob_app/screens/Home_tab/job/components/job_list_section.dart';
-import 'package:viejob_app/screens/Home_tab/job/components/search_filter_section.dart';
 import 'package:viejob_app/screens/Home_tab/job/components/empty_state_section.dart';
-import 'package:viejob_app/screens/Home_tab/job/components/job_description_section.dart';
 import 'package:viejob_app/screens/Home_tab/job/components/job_description_section.dart';
 import 'package:viejob_app/services/application_service.dart';
 import '../../../services/job_service.dart';
@@ -26,50 +25,77 @@ class _FindJobScreenState extends State<FindJobScreen> {
   final JobService _jobService = JobService();
   final ApplicationService _applicationService = ApplicationService();
   
-  String _selectedCategory = 'Tất cả';
-  String _selectedLocation = 'Tất cả địa điểm';
-  String _selectedSalary = 'Tất cả mức lương';
+  // Bộ lọc theo kiểu web - nhiều lựa chọn
+  List<String> _selectedLocations = [];
+  List<String> _selectedCategories = [];
+  List<String> _selectedSalaries = [];
   
   List<JobModel> _jobs = [];
   List<JobModel> _filteredJobs = [];
   List<ApplicationModel> _appliedJobs = [];
   bool _isLoading = true;
-  bool _isLoadingApplications = true;
-  bool _isSearching = false;
   bool _isApplying = false;
   String _errorMessage = '';
   int _currentPage = 1;
   bool _hasMore = true;
+  Timer? _debounceTimer;
 
-  final List<String> _categories = [
-    'Tất cả',
-    'Lập trình',
-    'Kinh doanh',
-    'Marketing',
-    'Design',
-    'Kế toán',
-    'Nhân sự',
-    'Bán hàng'
+  // Dữ liệu filter
+  final List<Map<String, dynamic>> _filterData = [
+    {
+      'label': 'Địa điểm',
+      'filterType': 'location',
+      'array': [
+        'Hà Nội',
+        'Hồ Chí Minh',
+        'Đà Nẵng',
+        'Quảng Ninh',
+        'Cần Thơ',
+        'Thái Bình',
+        'Hải Phòng',
+        'Làm việc từ xa',
+      ],
+    },
+    {
+      'label': 'Việc làm',
+      'filterType': 'category',
+      'array': [
+        'Lập trình viên',
+        'Kinh doanh',
+        'Marketing',
+        'Design',
+        'Kế toán',
+        'Nhân sự',
+        'Bán hàng',
+        'IT - Phần mềm',
+        'Quản lý',
+        'Tư vấn',
+      ],
+    },
+    {
+      'label': 'Lương',
+      'filterType': 'salary',
+      'array': [
+        '0 - 5.000.000',
+        '5.000.000 - 15.000.000',
+        '15.000.000 - 40.000.000',
+        '> 40.000.000',
+        'Thỏa thuận',
+      ],
+    },
   ];
 
-  final List<String> _locations = [
-    'Tất cả địa điểm',
-    'Hà Nội',
-    'TP Hồ Chí Minh',
-    'Đà Nẵng',
-    'Cần Thơ',
-    'Hải Phòng',
-    'Làm việc từ xa'
-  ];
-
-  final List<String> _salaries = [
-    'Tất cả mức lương',
-    'Dưới 10 triệu',
-    '10 - 15 triệu',
-    '15 - 20 triệu',
-    '20 - 30 triệu',
-    'Trên 30 triệu'
-  ];
+  // Map alias cho địa điểm
+  final Map<String, List<String>> _locationAliasMap = {
+    'Hồ Chí Minh': ['hochiminh', 'hcm', 'ho chi minh', 'tp hồ chí minh', 'tphcm'],
+    'Hà Nội': ['hanoi', 'hn', 'hà nội'],
+    'Đà Nẵng': ['danang', 'dn', 'đà nẵng'],
+    'Quảng Ninh': ['quangninh', 'quảng ninh'],
+    'Cần Thơ': ['cantho', 'cần thơ'],
+    'Thái Bình': ['thaibinh', 'thái bình'],
+    'Hải Phòng': ['haiphong', 'hải phòng'],
+    'Làm việc từ xa': ['remote', 'làm việc từ xa', 'work from home', 'wfh'],
+  };
 
   @override
   void initState() {
@@ -81,9 +107,17 @@ class _FindJobScreenState extends State<FindJobScreen> {
 
   void _setupSearchListener() {
     _searchController.addListener(() {
-      if (_searchController.text.isEmpty) {
-        _filterJobs();
+      if (_debounceTimer?.isActive ?? false) {
+        _debounceTimer!.cancel();
       }
+      
+      _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+        if (_searchController.text.isEmpty) {
+          _applyFilters();
+        } else {
+          _performSearch();
+        }
+      });
     });
   }
 
@@ -104,13 +138,29 @@ class _FindJobScreenState extends State<FindJobScreen> {
     }
 
     try {
+      // Chỉ gửi 1 filter đầu tiên nếu có
+      String? categoryFilter;
+      if (_selectedCategories.isNotEmpty) {
+        categoryFilter = _selectedCategories.first;
+      }
+      
+      String? locationFilter;
+      if (_selectedLocations.isNotEmpty) {
+        locationFilter = _selectedLocations.first;
+      }
+      
+      String? salaryFilter;
+      if (_selectedSalaries.isNotEmpty) {
+        salaryFilter = _selectedSalaries.first;
+      }
+
       final result = await _jobService.getAllJobs(
         search: _searchController.text.isEmpty ? null : _searchController.text,
-        category: _selectedCategory == 'Tất cả' ? null : _selectedCategory,
-        location: _selectedLocation == 'Tất cả địa điểm' ? null : _selectedLocation,
-        salaryRange: _selectedSalary == 'Tất cả mức lương' ? null : _selectedSalary,
+        category: categoryFilter,
+        location: locationFilter,
+        salaryRange: salaryFilter,
         page: _currentPage,
-        limit: 10,
+        limit: 20,
       );
 
       if (result['success'] == true) {
@@ -122,8 +172,9 @@ class _FindJobScreenState extends State<FindJobScreen> {
           } else {
             _jobs = newJobs;
           }
-          _filteredJobs = _jobs;
-          _hasMore = newJobs.length == 10;
+          
+          _filteredJobs = _applyLocalFilters(_jobs);
+          _hasMore = newJobs.length == 20;
           _currentPage++;
         });
       } else {
@@ -138,30 +189,142 @@ class _FindJobScreenState extends State<FindJobScreen> {
     } finally {
       setState(() {
         _isLoading = false;
-        _isSearching = false;
       });
     }
   }
 
-  Future<void> _loadAppliedJobs() async {
+  // Hàm normalize text để tìm kiếm không dấu
+  String _normalize(String text) {
+    return text
+        .toLowerCase()
+        .replaceAll(RegExp(r'[àáạảãâầấậẩẫăằắặẳẵ]'), 'a')
+        .replaceAll(RegExp(r'[èéẹẻẽêềếệểễ]'), 'e')
+        .replaceAll(RegExp(r'[ìíịỉĩ]'), 'i')
+        .replaceAll(RegExp(r'[òóọỏõôồốộổỗơờớợởỡ]'), 'o')
+        .replaceAll(RegExp(r'[ùúụủũưừứựửữ]'), 'u')
+        .replaceAll(RegExp(r'[ỳýỵỷỹ]'), 'y')
+        .replaceAll(RegExp(r'[đ]'), 'd')
+        .replaceAll(RegExp(r'[^a-z0-9\s]'), '')
+        .replaceAll(' ', '');
+  }
+
+  // Hàm parse lương từ string
+  double? _parseSalary(String salaryText) {
     try {
-      print('🔄 Loading applied jobs for FindJobScreen...');
-      final appliedJobs = await _applicationService.getAppliedJobs();
+      final regex = RegExp(r'(\d+(?:\.\d+)?)');
+      final matches = regex.allMatches(salaryText);
       
-      // DEBUG: Kiểm tra jobId của từng application
-      print('📦 FIND JOB - APPLIED JOBS DEBUG:');
-      for (int i = 0; i < appliedJobs.length; i++) {
-        final app = appliedJobs[i];
-        print('   App $i: ${app.id}');
-        print('     - jobId: "${app.jobId}"');
-        
-        if (app.jobData is Map) {
-          final jobData = app.jobData as Map;
-          print('     - jobData keys: ${jobData.keys}');
-        }
-        print('     ---');
+      if (matches.isEmpty) return null;
+      
+      final numbers = matches
+          .map((match) => double.parse(match.group(1)!))
+          .toList();
+      
+      if (numbers.length > 1) {
+        return numbers.reduce((a, b) => a + b) / numbers.length;
       }
       
+      return numbers.first;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Hàm áp dụng filter local
+  List<JobModel> _applyLocalFilters(List<JobModel> jobs) {
+    return jobs.where((job) {
+      // Kiểm tra search text
+      final searchText = _searchController.text.trim().toLowerCase();
+      if (searchText.isNotEmpty) {
+        final normalizedSearch = _normalize(searchText);
+        final normalizedJobTitle = _normalize(job.title);
+        final normalizedCompanyName = _normalize(job.companyName);
+        final normalizedLocation = _normalize(job.location);
+        final normalizedCategory = _normalize(job.category);
+        
+        if (!normalizedJobTitle.contains(normalizedSearch) &&
+            !normalizedCompanyName.contains(normalizedSearch) &&
+            !normalizedLocation.contains(normalizedSearch) &&
+            !normalizedCategory.contains(normalizedSearch)) {
+          return false;
+        }
+      }
+
+      // Kiểm tra location
+      if (_selectedLocations.isNotEmpty) {
+        bool locationMatch = false;
+        final normalizedJobLocation = _normalize(job.location);
+        
+        for (var selectedLocation in _selectedLocations) {
+          final aliases = _locationAliasMap[selectedLocation] ?? [_normalize(selectedLocation)];
+          if (aliases.any((alias) => normalizedJobLocation.contains(alias))) {
+            locationMatch = true;
+            break;
+          }
+        }
+        
+        if (!locationMatch) return false;
+      }
+
+      // Kiểm tra category
+      if (_selectedCategories.isNotEmpty) {
+        final normalizedJobCategory = _normalize(job.category);
+        final match = _selectedCategories.any((category) {
+          return normalizedJobCategory.contains(_normalize(category));
+        });
+        
+        if (!match) return false;
+      }
+
+      // Kiểm tra salary
+      if (_selectedSalaries.isNotEmpty) {
+        final jobSalary = job.salary.toString().toLowerCase();
+        bool salaryMatch = false;
+        
+        for (var salaryRange in _selectedSalaries) {
+          if (salaryRange == 'Thỏa thuận') {
+            if (jobSalary.contains('thỏa thuận') || 
+                jobSalary.contains('negotiable') ||
+                jobSalary.contains('thoa thuan')) {
+              salaryMatch = true;
+              break;
+            }
+            continue;
+          }
+          
+          final jobSalaryValue = _parseSalary(job.salary as String);
+          if (jobSalaryValue == null) continue;
+          
+          if (salaryRange.contains('>')) {
+            // Trên 40 triệu
+            if (jobSalaryValue > 40) {
+              salaryMatch = true;
+              break;
+            }
+          } else {
+            final parts = salaryRange.split(' - ');
+            if (parts.length == 2) {
+              final min = _parseSalary(parts[0]) ?? 0;
+              final max = _parseSalary(parts[1]) ?? double.infinity;
+              
+              if (jobSalaryValue >= min && jobSalaryValue <= max) {
+                salaryMatch = true;
+                break;
+              }
+            }
+          }
+        }
+        
+        if (!salaryMatch) return false;
+      }
+
+      return true;
+    }).toList();
+  }
+
+  Future<void> _loadAppliedJobs() async {
+    try {
+      final appliedJobs = await _applicationService.getAppliedJobs();
       setState(() {
         _appliedJobs = appliedJobs;
       });
@@ -169,32 +332,15 @@ class _FindJobScreenState extends State<FindJobScreen> {
       print('❌ Error loading applied jobs in FindJobScreen: $e');
     } finally {
       setState(() {
-        _isLoadingApplications = false;
       });
     }
   }
 
   bool _hasAppliedToJob(String jobId) {
-    print('🔍 FindJob - Checking application for job: $jobId');
-    
-    for (final app in _appliedJobs) {
-      print('   - Checking app: ${app.id}');
-      print('     - app.jobId: "${app.jobId}"');
-      
-      // SO SÁNH TRỰC TIẾP app.jobId VỚI jobId
-      if (app.jobId == jobId) {
-        print('     -> ✅ MATCH via app.jobId');
-        return true;
-      }
-    }
-    
-    print('   - ❌ NO application found for job: $jobId');
-    return false;
+    return _appliedJobs.any((app) => app.jobId == jobId);
   }
 
   String _getApplicationStatus(String jobId) {
-    print('📊 FindJob - Getting status for job: $jobId');
-    
     try {
       final application = _appliedJobs.firstWhere(
         (app) => app.jobId == jobId,
@@ -207,58 +353,44 @@ class _FindJobScreenState extends State<FindJobScreen> {
           updatedAt: DateTime.now(),
         ),
       );
-      
-      print('   - Application status: ${application.status}');
       return application.status;
     } catch (e) {
-      print('   - Error getting status: $e');
       return 'not_applied';
     }
   }
 
   String _getApplyButtonText(String jobId) {
     final hasApplied = _hasAppliedToJob(jobId);
-    print('🔄 FindJob - Getting button text for job: $jobId');
-    print('   - Has applied: $hasApplied');
     
     if (!hasApplied) {
-      print('   - Button text: Ứng tuyển');
       return 'Ứng tuyển';
     }
     
     final status = _getApplicationStatus(jobId);
-    print('   - Application status: $status');
     
     switch (status) {
       case 'pending':
-        print('   - Button text: Đã ứng tuyển');
         return 'Đã ứng tuyển';
       case 'accepted':
-        print('   - Button text: Đã được chấp nhận');
         return 'Đã được chấp nhận';
       case 'rejected':
-        print('   - Button text: Đã bị từ chối');
         return 'Đã bị từ chối';
       default:
-        print('   - Button text: Ứng tuyển (default)');
         return 'Ứng tuyển';
     }
   }
 
   Color _getApplyButtonColor(String jobId, bool isActive) {
     if (!isActive) {
-      print('🎨 FindJob - Button color: Grey (inactive)');
       return Colors.grey;
     }
     
     final hasApplied = _hasAppliedToJob(jobId);
     if (!hasApplied) {
-      print('🎨 FindJob - Button color: Blue (can apply)');
       return Colors.blue;
     }
     
     final status = _getApplicationStatus(jobId);
-    print('🎨 FindJob - Button color for status $status');
     
     switch (status) {
       case 'pending':
@@ -273,9 +405,7 @@ class _FindJobScreenState extends State<FindJobScreen> {
   }
 
   bool _canApply(String jobId, bool isActive) {
-    final canApply = isActive && !_hasAppliedToJob(jobId);
-    print('🔓 FindJob - Can apply for job $jobId: $canApply (isActive: $isActive)');
-    return canApply;
+    return isActive && !_hasAppliedToJob(jobId);
   }
 
   Future<void> _applyForJob(JobModel job) async {
@@ -287,8 +417,6 @@ class _FindJobScreenState extends State<FindJobScreen> {
       final result = await _applicationService.applyJob(job.id);
 
       if (result['success'] == true) {
-        // Reload applied jobs để cập nhật UI
-        print('🔄 FindJob - Reloading applied jobs after successful application...');
         await _loadAppliedJobs();
         
         if (mounted) {
@@ -419,36 +547,24 @@ class _FindJobScreenState extends State<FindJobScreen> {
 
   void _showApplicationStatusDialog(JobModel job) {
     final status = _getApplicationStatus(job.id);
-    String title = '';
-    String message = '';
-    Color color = Colors.blue;
-
-    switch (status) {
-      case 'pending':
-        title = 'Đã ứng tuyển';
-        message = 'Bạn đã ứng tuyển vào vị trí này. Hồ sơ của bạn đang được xem xét.';
-        color = Colors.orange;
-        break;
-      case 'accepted':
-        title = 'Được chấp nhận';
-        message = 'Chúc mừng! Bạn đã được chấp nhận cho vị trí này. Nhà tuyển dụng sẽ liên hệ với bạn sớm.';
-        color = Colors.green;
-        break;
-      case 'rejected':
-        title = 'Đã bị từ chối';
-        message = 'Rất tiếc, hồ sơ của bạn không phù hợp với vị trí này. Hãy thử ứng tuyển các vị trí khác.';
-        color = Colors.red;
-        break;
-      default:
-        title = 'Trạng thái ứng tuyển';
-        message = 'Không thể xác định trạng thái ứng tuyển.';
-    }
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title, style: TextStyle(color: color)),
-        content: Text(message),
+        title: Text(
+          status == 'pending' ? 'Đã ứng tuyển' :
+          status == 'accepted' ? 'Được chấp nhận' : 'Đã bị từ chối',
+          style: TextStyle(
+            color: status == 'pending' ? Colors.orange :
+                   status == 'accepted' ? Colors.green : Colors.red,
+          ),
+        ),
+        content: Text(
+          status == 'pending' 
+            ? 'Bạn đã ứng tuyển vào vị trí này. Hồ sơ của bạn đang được xem xét.'
+            : status == 'accepted'
+            ? 'Chúc mừng! Bạn đã được chấp nhận cho vị trí này.'
+            : 'Rất tiếc, hồ sơ của bạn không phù hợp với vị trí này.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -459,61 +575,31 @@ class _FindJobScreenState extends State<FindJobScreen> {
     );
   }
 
-  void _filterJobs() {
-    final searchText = _searchController.text.toLowerCase();
-    
+  void _performSearch() {
     setState(() {
-      if (searchText.isEmpty) {
-        _filteredJobs = _jobs;
-      } else {
-        _filteredJobs = _jobs.where((job) {
-          return job.title.toLowerCase().contains(searchText) ||
-                 job.companyName.toLowerCase().contains(searchText) ||
-                 job.description.toLowerCase().contains(searchText) ||
-                 job.category.toLowerCase().contains(searchText);
-        }).toList();
-      }
+    });
+    _loadJobs();
+  }
+
+  void _applyFilters() {
+    setState(() {
+      _filteredJobs = _applyLocalFilters(_jobs);
     });
   }
 
-  void _performSearch() {
-    if (_searchController.text.isNotEmpty) {
-      setState(() {
-        _isSearching = true;
-      });
-      _loadJobs();
-    }
+
+  void _resetFilters() {
+    setState(() {
+      _selectedLocations.clear();
+      _selectedCategories.clear();
+      _selectedSalaries.clear();
+      _searchController.clear();
+    });
+    _loadJobs();
   }
 
   void _refreshJobs() {
     _loadInitialData();
-  }
-
-  void _updateFilter(String type, String value) {
-    setState(() {
-      switch (type) {
-        case 'category':
-          _selectedCategory = value;
-          break;
-        case 'location':
-          _selectedLocation = value;
-          break;
-        case 'salary':
-          _selectedSalary = value;
-          break;
-      }
-    });
-    _loadJobs();
-  }
-
-  void _resetFilters() {
-    setState(() {
-      _selectedCategory = 'Tất cả';
-      _selectedLocation = 'Tất cả địa điểm';
-      _selectedSalary = 'Tất cả mức lương';
-      _searchController.clear();
-    });
-    _loadJobs();
   }
 
   void _showJobDetail(JobModel job) {
@@ -534,7 +620,6 @@ class _FindJobScreenState extends State<FindJobScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              // Handle apply action if needed
               if (_canApply(job.id, job.isActive)) {
                 _showApplyDialog(job);
               } else {
@@ -554,81 +639,304 @@ class _FindJobScreenState extends State<FindJobScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Tìm việc làm',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshJobs,
-          ),
-        ],
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      body: Column(
-        children: [
-          // Search and Filter Section
-          SearchFilterSection(
-            searchController: _searchController,
-            selectedCategory: _selectedCategory,
-            selectedLocation: _selectedLocation,
-            selectedSalary: _selectedSalary,
-            isSearching: _isSearching,
-            categories: _categories,
-            locations: _locations,
-            salaries: _salaries,
-            onSearch: _performSearch,
-            onFilterChanged: _updateFilter,
-            onAdvancedFilter: _showAdvancedFilter,
-          ),
-
-          // Error Message
-          if (_errorMessage.isNotEmpty)
-            _buildErrorMessage(),
-
-          // Job List
-          Expanded(
-            child: _isLoading && _jobs.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredJobs.isEmpty
-                    ? EmptyStateSection(
-                        onRetry: _refreshJobs,
-                        hasSearchText: _searchController.text.isNotEmpty,
-                      )
-                    : JobListSection(
-                        jobs: _filteredJobs,
-                        hasMore: _hasMore,
-                        isLoading: _isLoading,
-                        appliedJobs: _appliedJobs,
-                        isApplying: _isApplying,
-                        onLoadMore: () => _loadJobs(loadMore: true),
-                        onJobTap: _showJobDetail,
-                        onApply: _applyForJob,
-                        onShowStatus: _showApplicationStatusDialog,
-                        hasAppliedToJob: _hasAppliedToJob,
-                        getApplyButtonText: _getApplyButtonText,
-                        getApplyButtonColor: _getApplyButtonColor,
-                        canApply: _canApply,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              height: MediaQuery.of(context).size.height * 0.9,
+              child: Column(
+                children: [
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Bộ lọc',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-          ),
-        ],
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  
+                  // Filter count
+                  if (_selectedLocations.isNotEmpty || 
+                      _selectedCategories.isNotEmpty || 
+                      _selectedSalaries.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.filter_list, size: 16, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${_selectedLocations.length + _selectedCategories.length + _selectedSalaries.length} bộ lọc đang chọn',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
+                  // Search bar
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Tìm theo tên công việc...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Filter sections
+                  Expanded(
+                    child: ListView(
+                      children: _filterData.map((section) {
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  section['label'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                
+                                const SizedBox(height: 12),
+                                
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: (section['array'] as List<String>).map((item) {
+                                    bool isSelected = false;
+                                    List<String> selectedList = [];
+                                    
+                                    switch (section['filterType']) {
+                                      case 'location':
+                                        selectedList = _selectedLocations;
+                                        break;
+                                      case 'category':
+                                        selectedList = _selectedCategories;
+                                        break;
+                                      case 'salary':
+                                        selectedList = _selectedSalaries;
+                                        break;
+                                    }
+                                    
+                                    isSelected = selectedList.contains(item);
+                                    
+                                    return ChoiceChip(
+                                      label: Text(
+                                        item,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: isSelected ? Colors.white : Colors.black87,
+                                        ),
+                                      ),
+                                      selected: isSelected,
+                                      onSelected: (selected) {
+                                        setState(() {
+                                          if (selected) {
+                                            selectedList.add(item);
+                                          } else {
+                                            selectedList.remove(item);
+                                          }
+                                        });
+                                      },
+                                      selectedColor: Theme.of(context).primaryColor,
+                                      backgroundColor: Colors.grey[200],
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  
+                  // Action buttons
+                  SafeArea(
+                    top: false,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _resetFilters,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Xóa bộ lọc',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _loadJobs();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Áp dụng',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterChips() {
+    final allSelected = [
+      ..._selectedLocations,
+      ..._selectedCategories,
+      ..._selectedSalaries,
+    ];
+    
+    if (allSelected.isEmpty) return const SizedBox();
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.grey[50],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            ..._selectedLocations.map((location) {
+              return _buildFilterChip(
+                location,
+                'location',
+                Icons.location_on,
+              );
+            }).toList(),
+            ..._selectedCategories.map((category) {
+              return _buildFilterChip(
+                category,
+                'category',
+                Icons.work,
+              );
+            }).toList(),
+            ..._selectedSalaries.map((salary) {
+              return _buildFilterChip(
+                salary,
+                'salary',
+                Icons.attach_money,
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String type, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      child: Chip(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+        onDeleted: () {
+          setState(() {
+            switch (type) {
+              case 'location':
+                _selectedLocations.remove(label);
+                break;
+              case 'category':
+                _selectedCategories.remove(label);
+                break;
+              case 'salary':
+                _selectedSalaries.remove(label);
+                break;
+            }
+          });
+          _loadJobs();
+        },
+        backgroundColor: Colors.blue[100],
+        deleteIconColor: Colors.blue[800],
       ),
     );
   }
 
   Widget _buildErrorMessage() {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.red[50],
         borderRadius: BorderRadius.circular(8),
@@ -660,74 +968,139 @@ class _FindJobScreenState extends State<FindJobScreen> {
     );
   }
 
-  void _showAdvancedFilter() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          height: MediaQuery.of(context).size.height * 0.8,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Bộ lọc nâng cao',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              // TODO: Add more advanced filter options
-              Expanded(
-                child: ListView(
-                  children: [
-                    // Add more filter sections here
-                  ],
-                ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        _resetFilters();
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Đặt lại'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _loadJobs();
-                      },
-                      child: const Text('Áp dụng'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Tìm việc làm',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshJobs,
+            tooltip: 'Làm mới',
           ),
-        );
-      },
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: _showFilterBottomSheet,
+            tooltip: 'Bộ lọc',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm công việc...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _performSearch();
+                        },
+                      )
+                    : null,
+              ),
+              onSubmitted: (value) => _performSearch(),
+            ),
+          ),
+          
+          // Active filter chips
+          _buildFilterChips(),
+          
+          // Filter info
+          if (_selectedLocations.isNotEmpty || 
+              _selectedCategories.isNotEmpty || 
+              _selectedSalaries.isNotEmpty ||
+              _searchController.text.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.blue[50],
+              child: Row(
+                children: [
+                  const Icon(Icons.filter_alt, size: 16, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Đang hiển thị ${_filteredJobs.length} công việc',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _resetFilters,
+                    child: const Text(
+                      'Xóa hết',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          
+          // Error Message
+          if (_errorMessage.isNotEmpty)
+            _buildErrorMessage(),
+          
+          // Job List
+          Expanded(
+            child: _isLoading && _jobs.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredJobs.isEmpty
+                    ? EmptyStateSection(
+                        onRetry: _refreshJobs,
+                        hasSearchText: _searchController.text.isNotEmpty,
+                      )
+                    : JobListSection(
+                        jobs: _filteredJobs,
+                        hasMore: _hasMore,
+                        isLoading: _isLoading,
+                        appliedJobs: _appliedJobs,
+                        isApplying: _isApplying,
+                        onLoadMore: () => _loadJobs(loadMore: true),
+                        onJobTap: _showJobDetail,
+                        onApply: _applyForJob,
+                        onShowStatus: _showApplicationStatusDialog,
+                        hasAppliedToJob: _hasAppliedToJob,
+                        getApplyButtonText: _getApplyButtonText,
+                        getApplyButtonColor: _getApplyButtonColor,
+                        canApply: _canApply,
+                        searchQuery: _searchController.text,
+                      ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showFilterBottomSheet,
+        child: const Icon(Icons.filter_list),
+        tooltip: 'Bộ lọc',
+      ),
     );
   }
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }

@@ -14,63 +14,68 @@ class AuthService {
 
   /// ===== LOGIN =====
   Future<Map<String, dynamic>> login(String email, String password, String role) async {
-    try {
-      print('🔐 Attempting login for: $email');
+  try {
+    print('🔐 Attempting login for: $email, role: $role');
+    
+    final response = await _api.post(ApiConfig.login, {
+      'email': email.trim(),
+      'password': password,
+      'role': role,
+    });
+
+    final responseData = response.data;
+    print('📦 Login response status: ${response.statusCode}');
+    print('📦 Login response data: $responseData');
+
+    if (responseData['success'] == true) {
+      final userData = responseData['user'];
+      print('👤 User data from API: ${jsonEncode(userData)}');
+      print('🎭 User role from API: ${userData['role']}');
+
+      // Lưu user data
+      await _storage.saveUserData(jsonEncode(userData));
       
-      final response = await _api.post(ApiConfig.login, {
-        'email': email.trim(),
-        'password': password,
-        'role': role,
-      });
-
-      final responseData = response.data;
-      print('📦 Login response: $responseData');
-
-      if (responseData['success'] == true) {
-        final userData = responseData['user'];
-
-        // Lưu user data
-        await _storage.saveUserData(jsonEncode(userData));
-        
-        // QUAN TRỌNG: LƯU TOKEN TỪ RESPONSE
-        final accessToken = responseData['accessToken'];
-        final refreshToken = responseData['refreshToken'];
-        
-        if (accessToken != null) {
-          await _storage.saveToken(accessToken);
-          print('✅ Token saved: ${accessToken.substring(0, 30)}...');
-        }
-        
-        if (refreshToken != null) {
-          await _storage.saveRefreshToken(refreshToken);
-          print('✅ Refresh token saved');
-        }
-        
-        await _storage.setSessionActive();
-
-        // Debug storage sau khi login
-        await _storage.debugStorage();
-
-        return {
-          'success': true,
-          'user': UserModel.fromJson(userData),
-          'token': accessToken,
-        };
+      // Lưu token
+      final accessToken = responseData['accessToken'];
+      final refreshToken = responseData['refreshToken'];
+      
+      if (accessToken != null) {
+        await _storage.saveToken(accessToken);
+        print('✅ Token saved: ${accessToken.substring(0, 30)}...');
+      } else {
+        print('⚠️ No access token in response');
+      }
+      
+      if (refreshToken != null) {
+        await _storage.saveRefreshToken(refreshToken);
+        print('✅ Refresh token saved');
       }
 
+      await _storage.setSessionActive();
+
+      // Debug storage
+      await _storage.debugStorage();
+
+      return {
+        'success': true,
+        'user': UserModel.fromJson(userData),
+        'token': accessToken,
+      };
+    } else {
+      print('❌ Login failed: ${responseData['message']}');
       return {
         'success': false,
         'error': responseData['message'] ?? 'Đăng nhập thất bại',
       };
-    } catch (e) {
-      print('❌ Login error: $e');
-      return {
-        'success': false,
-        'error': e.toString().replaceAll('Exception: ', ''),
-      };
     }
+  } catch (e) {
+    print('❌ Login error: $e');
+    return {
+      'success': false,
+      'error': e.toString().replaceAll('Exception: ', ''),
+    };
   }
-
+}
   
   /// ===== GET CURRENT USER =====
   Future<UserModel?> getCurrentUser() async {

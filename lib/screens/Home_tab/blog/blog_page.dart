@@ -21,7 +21,6 @@ class _BlogListPageState extends State<BlogListPage> {
   List<BlogModel> _blogs = [];
   bool _isLoading = true;
   String _errorMessage = '';
-  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -47,27 +46,23 @@ class _BlogListPageState extends State<BlogListPage> {
         setState(() {
           _blogs = result.data!.blogs;
           _isLoading = false;
-          _isRefreshing = false;
         });
       } else {
         setState(() {
           _errorMessage = result.message;
           _isLoading = false;
-          _isRefreshing = false;
         });
       }
     } catch (e) {
       setState(() {
         _errorMessage = 'Lỗi kết nối: $e';
         _isLoading = false;
-        _isRefreshing = false;
       });
     }
   }
 
   Future<void> _refreshBlogs() async {
     setState(() {
-      _isRefreshing = true;
     });
     await _loadBlogs();
   }
@@ -242,7 +237,6 @@ class _BlogListPageState extends State<BlogListPage> {
   Widget _buildQuickStats() {
     // Tính toán số lượng blog theo trạng thái
     final approvedCount = _blogs.where((blog) => blog.approval == 'approved').length;
-    final pendingCount = _blogs.where((blog) => blog.approval == 'pending').length;
     final totalViews = _blogs.fold(0, (sum, blog) => sum + blog.views);
 
     return Container(

@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:viejob_app/screens/Home_tab/blog/blog_page.dart';
 import 'package:viejob_app/screens/Home_tab/company/company_page.dart';
 import '../../services/auth_service.dart';
-import '../../models/user_model.dart';
 import '../home_tabs/home_tab.dart';
 import '../home_tabs/reviewCV.dart';
 import '../home_tabs/account_tab.dart';
@@ -19,7 +18,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  UserModel? _currentUser;
   bool _isLoading = true;
   int _currentIndex = 0;
   final AuthService _authService = AuthService(); // DI CHUYỂN LÊN ĐÂY
@@ -47,9 +45,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final user = await _authService.getCurrentUser();
+    await _authService.getCurrentUser();
     setState(() {
-      _currentUser = user;
       _isLoading = false;
     });
   }
@@ -109,18 +106,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  String _getRoleText(String role) {
-    switch (role) {
-      case 'student':
-        return 'Sinh viên';
-      case 'recruiter':
-        return 'Nhà tuyển dụng';
-      case 'admin':
-        return 'Quản trị viên';
-      default:
-        return role;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

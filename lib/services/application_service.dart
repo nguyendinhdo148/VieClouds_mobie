@@ -319,30 +319,29 @@ Future<List<ApplicationModel>> getAppliedJobs() async {
     }
   }
 
-  /// Lấy tất cả ứng viên từ các job của recruiter
-  Future<List<ApplicationModel>> getApplicantsForRecruiter() async {
-    try {
-      final headers = await getAuthHeaders();
-      final response = await _dio.get(
-        ApiConfig.getApplicantsForRecruiter,
-        options: Options(headers: headers),
-      );
+Future<List<ApplicationModel>> getApplicantsForRecruiter() async {
+  try {
+    final headers = await getAuthHeaders();
+    
+    final response = await _dio.get(
+      ApiConfig.getApplicantsForRecruiter,
+      options: Options(headers: headers),
+    );
+    
+    if (response.statusCode == 200 && response.data['success'] == true) {
+      // Lấy danh sách từ response
+      final List<dynamic> data = response.data['applications'] ?? [];
       
-      if (response.data['success'] == true) {
-        final List<dynamic> applicationsJson = response.data['applications'] ?? [];
-        return applicationsJson
-            .map((json) => ApplicationModel.fromJson(json))
-            .toList();
-      } else {
-        throw Exception(response.data['message'] ?? 'Không thể tải danh sách ứng viên');
-      }
-    } on DioException catch (e) {
-      print('❌ Get recruiter applicants error: $e');
-      throw Exception(e.response?.data['message'] ?? 'Lỗi tải danh sách ứng viên');
+      // Parse thành model
+      return data.map((json) => ApplicationModel.fromJson(json)).toList();
     }
+    
+    return [];
+    
+  } catch (e) {
+    return [];
   }
-
-  /// Cập nhật trạng thái hồ sơ (accepted / rejected / pending)
+} /// Cập nhật trạng thái hồ sơ (accepted / rejected / pending)
   Future<Map<String, dynamic>> updateApplicationStatus(
       String applicationId, String status) async {
     try {
@@ -373,7 +372,172 @@ Future<List<ApplicationModel>> getAppliedJobs() async {
     }
   }
 
-  /// Lấy dữ liệu tổng quan (dashboard của recruiter)
+
+
+/// Lấy số lượng ứng viên của recruiter (tương tự job count)
+Future<Map<String, dynamic>> getRecruiterApplicationCount() async {
+  try {
+    final applications = await getApplicantsForRecruiter();
+    return {
+      'success': true,
+      'count': applications.length,
+    };
+  } catch (e) {
+    print('❌ Get recruiter application count error: $e');
+    return {
+      'success': false,
+      'error': e.toString().replaceAll('Exception: ', ''),
+      'count': 0,
+    };
+  }
+}
+
+/// Cách đếm ứng viên mới - gọi API overview
+Future<Map<String, dynamic>> getRecruiterCandidateCountDirect() async {
+  try {
+    print('📊 Fetching candidate count via overview API...');
+    
+    final headers = await getAuthHeaders();
+    
+    final response = await _dio.get(
+      ApiConfig.getApplicationOverview,
+      options: Options(
+        headers: headers,
+        validateStatus: (status) => status! < 500,
+      ),
+    );
+    
+    print('📦 Overview API response status: ${response.statusCode}');
+    print('📦 Overview API response data: ${response.data}');
+    
+    if (response.statusCode == 200 && response.data['success'] == true) {
+      final data = response.data['data'] ?? {};
+      final count = data['totalApplications'] ?? data['total'] ?? 0;
+      
+      print('✅ Candidate count from overview: $count');
+      return {
+        'success': true,
+        'count': count,
+      };
+    } else {
+      print('⚠️ Overview API error: ${response.data['message']}');
+      return {
+        'success': false,
+        'error': response.data['message'] ?? 'Không thể lấy số lượng ứng viên',
+        'count': 0,
+      };
+    }
+  } on DioException catch (e) {
+    print('❌ Overview API Dio error: ${e.type}');
+    print('❌ Error: ${e.message}');
+    print('❌ Response: ${e.response?.data}');
+    
+    return {
+      'success': false,
+      'error': e.response?.data['message'] ?? 'Lỗi kết nối: ${e.message}',
+      'count': 0,
+    };
+  } catch (e) {
+    print('❌ Overview API unexpected error: $e');
+    return {
+      'success': false,
+      'error': 'Lỗi: $e',
+      'count': 0,
+    };
+  }
+}
+
+/// Lấy danh sách ứng viên với debug chi tiết (cho dashboard)
+// services/application_service.dart (cập nhật phương thức)
+
+/// Lấy danh sách ứng viên với debug chi tiết (cho dashboard)
+Future<Map<String, dynamic>> getRecruiterCandidatesWithDebug() async {
+  try {
+    print('🚀 Getting applicants for recruiter WITH DEBUG...');
+    
+    final headers = await getAuthHeaders();
+    
+    final response = await _dio.get(
+      ApiConfig.getApplicantsForRecruiter,
+      options: Options(
+        headers: headers,
+        validateStatus: (status) => status! < 500,
+      ),
+    );
+    
+    print('📦 Applicants API response status: ${response.statusCode}');
+    print('📦 FULL RESPONSE:');
+    print(response.data);
+    
+    if (response.statusCode == 200 && response.data['success'] == true) {
+      // Sử dụng trường 'applications' từ response
+      final List<dynamic> candidates = response.data['applications'] ?? [];
+      
+      print('✅ Found ${candidates.length} candidates in response');
+      print('✅ Response keys: ${response.data.keys.toList()}');
+      
+      if (candidates.isNotEmpty) {
+        print('🔍 First candidate structure:');
+        final first = candidates[0];
+        print('   - Type: ${first.runtimeType}');
+        if (first is Map) {
+          print('   - Keys: ${first.keys.toList()}');
+          print('   - Has _id: ${first.containsKey('_id')}');
+          print('   - Has status: ${first.containsKey('status')}');
+          print('   - Has job field: ${first.containsKey('job')}');
+          print('   - Has applicant field: ${first.containsKey('applicant')}');
+          
+          // Test parsing với model mới
+          print('   - Testing ApplicationModel.fromJson...');
+          try {
+            final testApp = ApplicationModel.fromJson(first as Map<String, dynamic>);
+            print('   ✅ Test parsing successful');
+            testApp.printDebugInfo();
+          } catch (e) {
+            print('   ❌ Test parsing failed: $e');
+          }
+        }
+      }
+      
+      return {
+        'success': true,
+        'applications': candidates,
+        'candidates': candidates,
+        'count': candidates.length,
+      };
+    } else {
+      print('❌ API error: ${response.data['message']}');
+      return {
+        'success': false,
+        'error': response.data['message'] ?? 'Không thể tải danh sách ứng viên',
+        'applications': [],
+        'candidates': [],
+        'count': 0,
+      };
+    }
+  } on DioException catch (e) {
+    print('❌ Get recruiter candidates Dio error: ${e.type}');
+    print('❌ Error: ${e.message}');
+    print('❌ Response: ${e.response?.data}');
+    
+    return {
+      'success': false,
+      'error': e.response?.data['message'] ?? 'Lỗi tải danh sách ứng viên',
+      'applications': [],
+      'candidates': [],
+      'count': 0,
+    };
+  } catch (e) {
+    print('❌ Get recruiter candidates unexpected error: $e');
+    return {
+      'success': false,
+      'error': 'Lỗi: $e',
+      'applications': [],
+      'candidates': [],
+      'count': 0,
+    };
+  }
+} /// Lấy dữ liệu tổng quan (dashboard của recruiter)
   Future<Map<String, dynamic>> getOverview() async {
     try {
       final headers = await getAuthHeaders();

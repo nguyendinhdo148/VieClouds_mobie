@@ -101,29 +101,6 @@ void _showErrorDialog(String message) {
     ),
   );
 }
-  void _simulateFilePick() {
-    // This is just for demonstration
-    // In production, use actual file picker
-    setState(() {
-      _fileName = 'profile_image.jpg';
-      // _selectedFile would be an actual File object in real implementation
-    });
-    
-    // Show dialog to inform user
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Thông báo'),
-        content: Text('Trong phiên bản thực tế, tính năng chọn file sẽ được tích hợp với package file_picker.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _removeFile() {
     setState(() {

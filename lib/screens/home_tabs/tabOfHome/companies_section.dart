@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:viejob_app/models/company_model.dart';
-import 'package:viejob_app/screens/Home_tab/company/company_page.dart';
 import 'package:viejob_app/screens/Home_tab/company/jobByCompany.dart';
 
 class CompaniesSection extends StatelessWidget {
@@ -27,23 +26,7 @@ class CompaniesSection extends StatelessWidget {
               title,
               style: _TextStyles.displayMedium,
             ),
-            TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CompanyPage()),
-              ),
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-              ),
-              child: Text(
-                'Xem tất cả',
-                style: _TextStyles.bodyMedium.copyWith(
-                  color: const Color.fromARGB(255, 0, 59, 210),
-                  fontWeight: FontWeight.w700, // ĐẬM HƠN
-                ),
-              ),
-            ),
+            
           ],
         ),
         const SizedBox(height: 16),

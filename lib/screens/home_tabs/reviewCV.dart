@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import 'package:viejob_app/config/api_config.dart';
 import 'dart:convert';
 import '../../services/ai_service.dart';
-import '../../widgets/custom_app_bar.dart';
 
 class ResumeReviewScreen extends StatefulWidget {
   const ResumeReviewScreen({Key? key}) : super(key: key);

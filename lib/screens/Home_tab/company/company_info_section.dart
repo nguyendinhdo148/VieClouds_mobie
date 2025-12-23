@@ -26,28 +26,30 @@ class _CompanyInfoSectionState extends State<CompanyInfoSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header với Logo và Thông tin cơ bản - LUÔN HIỂN THỊ
-          _buildCompanyHeader(),
-          
-          // Nội dung có thể thu gọn
-          if (_isExpanded) ..._buildExpandableContent(),
-        ],
+    return SingleChildScrollView( // THÊM SingleChildScrollView Ở NGOÀI CÙNG
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header với Logo và Thông tin cơ bản - LUÔN HIỂN THỊ
+            _buildCompanyHeader(),
+            
+            // Nội dung có thể thu gọn
+            if (_isExpanded) ..._buildExpandableContent(),
+          ],
+        ),
       ),
     );
   }
@@ -78,7 +80,7 @@ class _CompanyInfoSectionState extends State<CompanyInfoSection> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              image: widget.company.hasLogo
+              image: widget.company.logo != null && widget.company.logo!.isNotEmpty
                   ? DecorationImage(
                       image: NetworkImage(widget.company.logo!),
                       fit: BoxFit.cover,
@@ -93,7 +95,7 @@ class _CompanyInfoSectionState extends State<CompanyInfoSection> {
               ],
               border: Border.all(color: Colors.blue[100]!),
             ),
-            child: widget.company.hasLogo
+            child: widget.company.logo != null && widget.company.logo!.isNotEmpty
                 ? null
                 : Icon(Icons.business, color: Colors.blue[300], size: 40),
           ),
@@ -151,10 +153,10 @@ class _CompanyInfoSectionState extends State<CompanyInfoSection> {
                 const SizedBox(height: 8),
                 
                 // Địa chỉ
-                if (widget.company.displayLocation != null)
+                if (widget.company.location != null && widget.company.location!.isNotEmpty)
                   _buildInfoRow(
                     Icons.location_on,
-                    widget.company.displayLocation!,
+                    widget.company.location!,
                   ),
                 
                 // Lĩnh vực hoạt động
@@ -213,14 +215,21 @@ class _CompanyInfoSectionState extends State<CompanyInfoSection> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            widget.company.description!,
-            style: GoogleFonts.inter(
-              color: Colors.grey[700],
-              fontSize: 14,
-              height: 1.6,
+          Container(
+            constraints: const BoxConstraints(
+              maxHeight: 300, // GIỚI HẠN CHIỀU CAO TỐI ĐA
             ),
-            textAlign: TextAlign.justify,
+            child: SingleChildScrollView( // THÊM SCROLL CHO PHẦN MÔ TẢ DÀI
+              child: Text(
+                widget.company.description!,
+                style: GoogleFonts.inter(
+                  color: Colors.grey[700],
+                  fontSize: 14,
+                  height: 1.6,
+                ),
+                textAlign: TextAlign.justify,
+              ),
+            ),
           ),
         ],
       ),
@@ -248,30 +257,32 @@ class _CompanyInfoSectionState extends State<CompanyInfoSection> {
           const SizedBox(height: 12),
           
           // Website
-          if (widget.company.formattedWebsite != null)
+          if (widget.company.website != null && widget.company.website!.isNotEmpty)
             _buildClickableInfoRow(
               Icons.language,
               'Website',
-              widget.company.formattedWebsite!,
-              onTap: () => _launchWebsite(widget.company.formattedWebsite!),
+              widget.company.website!,
+              onTap: () => _launchWebsite(widget.company.website!),
             ),
           
           // Địa chỉ chi tiết
-          if (widget.company.address != null && widget.company.address != widget.company.location)
+          if (widget.company.address != null && 
+              widget.company.address!.isNotEmpty && 
+              widget.company.address != widget.company.location)
             _buildInfoRow(
               Icons.home_work,
               'Địa chỉ trụ sở: ${widget.company.address!}',
             ),
           
           // Mã số thuế
-          if (widget.company.taxCode != null)
+          if (widget.company.taxCode != null && widget.company.taxCode!.isNotEmpty)
             _buildInfoRow(
               Icons.receipt_long,
               'Mã số thuế: ${widget.company.taxCode!}',
             ),
           
           // Giấy phép kinh doanh
-          if (widget.company.hasBusinessLicense)
+          if (widget.company.businessLicense != null && widget.company.businessLicense!.isNotEmpty)
             _buildClickableInfoRow(
               Icons.assignment,
               'Giấy phép kinh doanh',
@@ -284,7 +295,17 @@ class _CompanyInfoSectionState extends State<CompanyInfoSection> {
   }
 
   Widget _buildCompanyStats() {
-    final stats = widget.company.companyStats;
+    final stats = <String>[];
+    
+    // Thêm các thông tin thống kê
+    // if (widget.company.employeeCount != null && widget.company.employeeCount! > 0) {
+    //   stats.add('${widget.company.employeeCount!}+ nhân viên');
+    // }
+    
+    // if (widget.company.foundedYear != null) {
+    //   stats.add('Thành lập: ${widget.company.foundedYear!}');
+    // }
+
     if (stats.isEmpty) return const SizedBox();
 
     return Container(
@@ -430,11 +451,26 @@ class _CompanyInfoSectionState extends State<CompanyInfoSection> {
 
   Future<void> _launchWebsite(String url) async {
     try {
-      if (await canLaunch(url)) {
-        await launch(url);
+      // Thêm https:// nếu URL không có protocol
+      String formattedUrl = url;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        formattedUrl = 'https://$url';
+      }
+      
+      if (await canLaunch(formattedUrl)) {
+        await launch(formattedUrl);
+      } else {
+        throw 'Could not launch $formattedUrl';
       }
     } catch (e) {
-      print('Could not launch $url: $e');
+      print('Could not launch URL: $e');
+      // Có thể hiển thị snackbar thông báo lỗi
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể mở liên kết: $url'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }
