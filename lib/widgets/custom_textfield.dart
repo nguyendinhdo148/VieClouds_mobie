@@ -22,7 +22,7 @@ class CustomTextField extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.maxLines = 1,
-    this.enabled = true,
+    this.enabled = true, required EdgeInsets contentPadding,
   }) : super(key: key);
 
   @override

@@ -1,14 +1,28 @@
 // main.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:viejob_app/admin_screen/blogs_screen.dart' show AdminBlogsScreen;
+import 'package:viejob_app/admin_screen/companies_screen.dart' show AdminCompaniesScreen;
+import 'package:viejob_app/admin_screen/dashboard_screen.dart' show AdminDashboardScreen;
+import 'package:viejob_app/admin_screen/jobs_screen.dart' show AdminJobsScreen;
+import 'package:viejob_app/admin_screen/users_screen.dart' show AdminUsersScreen;
 
+// Auth screens
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
+
+// Student screens
 import 'screens/nav/home_screen.dart';
+
+// Recruiter screens
 import 'recruiter_screen/dashboard_screen.dart';
 import 'recruiter_screen/company_screen.dart'; 
 import 'recruiter_screen/jobs_screen.dart'; 
 import 'recruiter_screen/candidates_screen.dart'; 
+
+// Admin screens
+
+
 import 'services/auth_service.dart';
 import 'widgets/chat/global_ai_chat.dart';
 
@@ -22,10 +36,14 @@ void main() async {
 
   if (isLoggedIn) {
     final user = await authService.getCurrentUser();
-    if (user != null && user.role == 'recruiter') {
-      initialRoute = '/recruiter';
-    } else {
-      initialRoute = '/home';
+    if (user != null) {
+      if (user.role == 'admin') {
+        initialRoute = '/admin';
+      } else if (user.role == 'recruiter') {
+        initialRoute = '/recruiter';
+      } else {
+        initialRoute = '/home';
+      }
     }
   }
 
@@ -45,7 +63,9 @@ class MyApp extends StatelessWidget {
           path: '/login',
           builder: (context, state) => LoginScreen(
             onLoginSuccess: (role) {
-              if (role == 'recruiter') {
+              if (role == 'admin') {
+                context.go('/admin');
+              } else if (role == 'recruiter') {
                 context.go('/recruiter');
               } else {
                 context.go('/home');
@@ -85,7 +105,81 @@ class MyApp extends StatelessWidget {
             ),
           ],
         ),
+
+        // ADMIN ROUTES
+        GoRoute(
+          path: '/admin',
+          builder: (context, state) => const AdminDashboardScreen(),
+        ),
+        GoRoute(
+          path: '/admin/users',
+          builder: (context, state) => const AdminUsersScreen(),
+        ),
+        GoRoute(
+          path: '/admin/companies',
+          builder: (context, state) => const AdminCompaniesScreen(),
+        ),
+        GoRoute(
+          path: '/admin/jobs',
+          builder: (context, state) => AdminJobsScreen(
+            status: state.uri.queryParameters['status'],
+          ),
+        ),
+        GoRoute(
+          path: '/admin/blogs',
+          builder: (context, state) => AdminBlogsScreen(
+            status: state.uri.queryParameters['status'],
+          ),
+        ),
       ],
+      
+      // Error page
+      errorBuilder: (context, state) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                '404',
+                style: TextStyle(
+                  fontSize: 64,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Trang không tìm thấy',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: () => context.go('/login'),
+                child: const Text('Quay về trang đăng nhập'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      
+      // Redirect logic
+      redirect: (context, state) {
+        // Check authentication
+        final isLoginRoute = state.matchedLocation == '/login';
+        final isRegisterRoute = state.matchedLocation == '/register';
+        
+        // Allow access to auth pages without login
+        if (isLoginRoute || isRegisterRoute) {
+          return null;
+        }
+        
+        // For other routes, check if user is logged in
+        // This logic will be handled by each screen individually
+        return null;
+      },
     );
 
     return MaterialApp.router(

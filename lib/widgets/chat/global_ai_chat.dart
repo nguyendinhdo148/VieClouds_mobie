@@ -1,11 +1,13 @@
-// widgets/chat/global_ai_chat.dart
 import 'package:flutter/material.dart';
 import 'ai_chat_widget.dart';
 
 class GlobalAIChat extends StatefulWidget {
   final Widget child;
 
-  const GlobalAIChat({Key? key, required this.child}) : super(key: key);
+  const GlobalAIChat({
+    Key? key,
+    required this.child,
+  }) : super(key: key);
 
   @override
   State<GlobalAIChat> createState() => _GlobalAIChatState();
@@ -19,18 +21,20 @@ class _GlobalAIChatState extends State<GlobalAIChat> {
   bool _isChatVisible = false;
   Offset? _floatingButtonPosition;
 
+  static const double _buttonSize = 72.0;
+
   @override
   void initState() {
     super.initState();
-    // Khởi tạo vị trí của button sau khi layout xong
+
+    // Khởi tạo vị trí nút sau khi layout xong
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final size = MediaQuery.of(context).size;
-      const buttonSize = 72.0;
 
       setState(() {
         _floatingButtonPosition ??= Offset(
-          size.width - buttonSize - 20,
-          size.height - buttonSize - 20,
+          size.width - _buttonSize - 20,
+          size.height - _buttonSize - 20,
         );
       });
     });
@@ -41,17 +45,16 @@ class _GlobalAIChatState extends State<GlobalAIChat> {
   void toggleChat() => setState(() => _isChatVisible = !_isChatVisible);
 
   void _onPanUpdate(DragUpdateDetails details) {
-    final screenSize = MediaQuery.of(context).size;
-    const buttonSize = 72.0;
-
     if (_floatingButtonPosition == null) return;
 
-    setState(() {
-      double dx = (_floatingButtonPosition!.dx + details.delta.dx)
-          .clamp(0, screenSize.width - buttonSize);
+    final screenSize = MediaQuery.of(context).size;
 
-      double dy = (_floatingButtonPosition!.dy + details.delta.dy)
-          .clamp(0, screenSize.height - buttonSize);
+    setState(() {
+      final dx = (_floatingButtonPosition!.dx + details.delta.dx)
+          .clamp(0.0, screenSize.width - _buttonSize);
+
+      final dy = (_floatingButtonPosition!.dy + details.delta.dy)
+          .clamp(0.0, screenSize.height - _buttonSize);
 
       _floatingButtonPosition = Offset(dx, dy);
     });
@@ -63,57 +66,54 @@ class _GlobalAIChatState extends State<GlobalAIChat> {
       return widget.child;
     }
 
-    const buttonSize = 72.0;
+    final entries = <OverlayEntry>[
+      // Toàn bộ app
+      OverlayEntry(
+        builder: (_) => widget.child,
+      ),
 
-    final List<OverlayEntry> entries = [
-      // toàn bộ app
-      OverlayEntry(builder: (overlayContext) {
-        return widget.child;
-      }),
+      // Floating AI Chat
+      OverlayEntry(
+        builder: (_) {
+          if (_isChatVisible) {
+            return AIChatWidget(onClose: hideChat);
+          }
 
-      // Chat hoặc Floating button
-      OverlayEntry(builder: (overlayContext) {
-        if (_isChatVisible) {
-          return AIChatWidget(onClose: hideChat);
-        }
+          return Positioned(
+            left: _floatingButtonPosition!.dx,
+            top: _floatingButtonPosition!.dy,
+            child: GestureDetector(
+              onPanUpdate: _onPanUpdate,
+              onTap: showChat,
+              child: Material(
+  color: Colors.white,
+  elevation: 6,
+  shape: const CircleBorder(),
+  child: SizedBox(
+    width: _buttonSize,
+    height: _buttonSize,
+    child: Padding(
+      padding: const EdgeInsets.all(8), // ít padding → icon to hơn
+      child: Image.asset(
+        'assets/images/ai_logo.png',
+        fit: BoxFit.contain,
+      ),
+    ),
+  ),
 
-        return Positioned(
-          left: _floatingButtonPosition!.dx,
-          top: _floatingButtonPosition!.dy,
-          child: GestureDetector(
-            onPanUpdate: _onPanUpdate,
-            onTap: showChat,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                width: buttonSize,
-                height: buttonSize,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue.shade300, Colors.blue.shade600],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(buttonSize / 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.18),
-                      blurRadius: 8,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.smart_toy, color: Colors.white, size: 32),
-              ),
+),
+
             ),
-          ),
-        );
-      }),
+          );
+        },
+      ),
     ];
 
     return Material(
       color: Colors.transparent,
-      child: Overlay(initialEntries: entries),
+      child: Overlay(
+        initialEntries: entries,
+      ),
     );
   }
 }

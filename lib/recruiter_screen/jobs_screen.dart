@@ -408,7 +408,7 @@ Future<void> _handleEditJob(JobModel job) async {
                 Icon(Iconsax.money, size: 14, color: Colors.grey.shade600),
                 const SizedBox(width: 4),
                 Text(
-                  '${NumberFormat.decimalPattern().format(job.salary)} VNĐ',
+                  '${NumberFormat.decimalPattern().format(job.salary)} triệu',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey.shade700,
@@ -1022,7 +1022,7 @@ Widget _buildMobileSidebar() {
               // Details
               _buildDetailRow('🏢 Công ty', job.companyId),
               _buildDetailRow('📍 Địa điểm', job.location),
-              _buildDetailRow('💰 Mức lương', '${NumberFormat.decimalPattern().format(job.salary)} VNĐ'),
+              _buildDetailRow('💰 Mức lương', '${NumberFormat.decimalPattern().format(job.salary)} triệu VNĐ'),
               _buildDetailRow('📊 Kinh nghiệm', '${job.experienceLevel} năm'),
               _buildDetailRow('📝 Số ứng viên', '${job.applications.length}'),
               

@@ -49,7 +49,6 @@ class ApiConfig {
   static const String getCompanyDetails = '/company/detail';
 
   // 🧾 APPLICATION (Ứng tuyển) ENDPOINTS
-  
   static const String applyJob = '/application/apply-job'; // + '/:id'
   static const String getAppliedJobs = '/application/applied-jobs';
   static const String getApplicants = '/application/applicants'; // + '/:id'
@@ -82,4 +81,31 @@ class ApiConfig {
   static const String miBasicAnalysis = '/mi/basic-analysis';
   static const String miAdvancedAnalysis = '/mi/advanced-analysis';
   static const String miIntelligenceTypes = '/mi/intelligence-types';
+
+  // 👑 ADMIN ENDPOINTS (NEW)
+  // User management
+  static const String adminGetAllUsers = '/admin/all-users';
+  static const String adminUpdateProfile = '/admin/profile/update'; // + '/:id'
+  static const String adminDeleteUser = '/admin/delete-user'; // + '/:id'
+
+  // Job management
+  static const String adminCreateJob = '/admin/create-job';
+  static const String adminGetAllJobs = '/admin/all-jobs';
+  static const String adminUpdateJob = '/admin/update-job'; // + '/:id'
+  static const String adminApproveJob = '/admin/approve-job'; // + '/:id'
+  static const String adminDeleteJob = '/admin/delete-job'; // + '/:id'
+
+  // Company management
+  static const String adminCreateCompany = '/admin/company/create';
+  static const String adminGetAllCompanies = '/admin/all-companies';
+  static const String adminUpdateCompany = '/admin/company'; // + '/:id'
+  static const String adminDeleteCompany = '/admin/company'; // + '/:id'
+
+  // Blog management
+  static const String adminApproveBlog = '/admin/approve-blog'; // + '/:id'
+  // Thêm vào class ApiConfig trong config/api_config.dart
+  static const String adminGetAllBlogs = '/admin/all-blogs';
+
+  // Overview
+  static const String adminGetOverview = '/admin/overview';
 }

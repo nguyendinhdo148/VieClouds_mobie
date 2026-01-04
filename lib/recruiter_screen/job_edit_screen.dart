@@ -34,11 +34,46 @@ class _JobEditScreenState extends State<JobEditScreen> {
   final _requirementsController = TextEditingController();
   final _benefitsController = TextEditingController();
 
-  // Dropdown values
+  // Dropdown values - Initialize with defaults that match the options
   String _jobType = 'full_time';
   String _position = '1';
   String _category = 'IT';
   String _status = 'active';
+
+  // Define dropdown options
+  final Map<String, List<Map<String, String>>> _dropdownOptions = {
+    'jobType': [
+      {'value': 'full_time', 'label': 'Toàn thời gian'},
+      {'value': 'part_time', 'label': 'Bán thời gian'},
+      {'value': 'contract', 'label': 'Hợp đồng'},
+      {'value': 'internship', 'label': 'Thực tập'},
+      {'value': 'freelance', 'label': 'Freelance'},
+      {'value': 'remote', 'label': 'Làm việc từ xa'},
+    ],
+    'position': [
+      {'value': '1', 'label': 'Nhân viên'},
+      {'value': '2', 'label': 'Chuyên viên'},
+      {'value': '3', 'label': 'Trưởng nhóm'},
+      {'value': '4', 'label': 'Quản lý'},
+      {'value': '5', 'label': 'Trưởng phòng'},
+      {'value': '6', 'label': 'Giám đốc'},
+    ],
+    'category': [
+      {'value': 'IT', 'label': 'IT'},
+      {'value': 'Marketing', 'label': 'Marketing'},
+      {'value': 'Sales', 'label': 'Sales'},
+      {'value': 'Design', 'label': 'Design'},
+      {'value': 'Finance', 'label': 'Finance'},
+      {'value': 'HR', 'label': 'HR'},
+      {'value': 'Operations', 'label': 'Operations'},
+      {'value': 'Other', 'label': 'Other'},
+    ],
+    'status': [
+      {'value': 'active', 'label': 'Hoạt động'},
+      {'value': 'draft', 'label': 'Bản nháp'},
+      {'value': 'closed', 'label': 'Đã đóng'},
+    ],
+  };
 
   @override
   void initState() {
@@ -61,11 +96,24 @@ class _JobEditScreenState extends State<JobEditScreen> {
       _benefitsController.text = job.benefits.join('\n');
     }
     
-    _jobType = job.jobType;
-    _position = job.position.toString();
-    _category = job.category;
-    _status = job.status;
+    // Ensure the values exist in dropdown options
+    _jobType = _validateDropdownValue('jobType', job.jobType);
+    _position = _validateDropdownValue('position', job.position.toString());
+    _category = _validateDropdownValue('category', job.category);
+    _status = _validateDropdownValue('status', job.status);
+    
     _selectedCompanyId = job.companyId;
+  }
+
+  // Helper to ensure dropdown value exists in options
+  String _validateDropdownValue(String key, String value) {
+    final options = _dropdownOptions[key]!;
+    final exists = options.any((option) => option['value'] == value);
+    if (exists) {
+      return value;
+    }
+    // Return the first option as default if value doesn't exist
+    return options.first['value']!;
   }
 
   Map<String, dynamic> _getFormData() {
@@ -116,7 +164,6 @@ class _JobEditScreenState extends State<JobEditScreen> {
       if (result['success'] == true) {
         print('✅ Job updated successfully');
         
-        // Hiển thị thông báo thành công
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Cập nhật công việc thành công!'),
@@ -124,7 +171,6 @@ class _JobEditScreenState extends State<JobEditScreen> {
           ),
         );
         
-        // Đóng màn hình và gọi callback
         Navigator.pop(context);
         widget.onSuccess?.call();
       } else {
@@ -194,9 +240,11 @@ class _JobEditScreenState extends State<JobEditScreen> {
   Widget _buildDropdown({
     required String label,
     required String value,
-    required List<String> options,
+    required String optionKey,
     required Function(String?) onChanged,
   }) {
+    final options = _dropdownOptions[optionKey]!;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -206,9 +254,9 @@ class _JobEditScreenState extends State<JobEditScreen> {
           value: value,
           onChanged: onChanged,
           items: options.map((option) {
-            return DropdownMenuItem(
-              value: option,
-              child: Text(_getDisplayText(option, label)),
+            return DropdownMenuItem<String>(
+              value: option['value'],
+              child: Text(option['label']!),
             );
           }).toList(),
           decoration: InputDecoration(
@@ -218,45 +266,15 @@ class _JobEditScreenState extends State<JobEditScreen> {
             filled: true,
             fillColor: Colors.white,
           ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Vui lòng chọn $label';
+            }
+            return null;
+          },
         ),
       ],
     );
-  }
-
-  String _getDisplayText(String value, String field) {
-    switch (field) {
-      case 'Loại công việc':
-        switch (value) {
-          case 'full_time': return 'Toàn thời gian';
-          case 'part_time': return 'Bán thời gian';
-          case 'contract': return 'Hợp đồng';
-          case 'internship': return 'Thực tập';
-          case 'freelance': return 'Freelance';
-          case 'remote': return 'Làm việc từ xa';
-          default: return value;
-        }
-      case 'Vị trí':
-        switch (value) {
-          case '1': return 'Nhân viên';
-          case '2': return 'Chuyên viên';
-          case '3': return 'Trưởng nhóm';
-          case '4': return 'Quản lý';
-          case '5': return 'Trưởng phòng';
-          case '6': return 'Giám đốc';
-          default: return value;
-        }
-      case 'Danh mục':
-        return value;
-      case 'Trạng thái':
-        switch (value) {
-          case 'active': return 'Hoạt động';
-          case 'draft': return 'Bản nháp';
-          case 'closed': return 'Đã đóng';
-          default: return value;
-        }
-      default:
-        return value;
-    }
   }
 
   // Styles
@@ -342,8 +360,8 @@ class _JobEditScreenState extends State<JobEditScreen> {
                   Expanded(
                     child: _buildTextField(
                       controller: _salaryController,
-                      label: 'Lương (VNĐ)*',
-                      hintText: 'VD: 10000000',
+                      label: 'Lương (Triệu)*',
+                      hintText: 'VD: 1',
                       validator: (value) => _validateNumber(value, 'mức lương'),
                       keyboardType: TextInputType.number,
                     ),
@@ -366,7 +384,7 @@ class _JobEditScreenState extends State<JobEditScreen> {
               _buildDropdown(
                 label: 'Loại công việc',
                 value: _jobType,
-                options: const ['full_time', 'part_time', 'contract', 'internship', 'freelance', 'remote'],
+                optionKey: 'jobType',
                 onChanged: (value) => value != null ? setState(() => _jobType = value) : null,
               ),
               const SizedBox(height: 16),
@@ -375,7 +393,7 @@ class _JobEditScreenState extends State<JobEditScreen> {
               _buildDropdown(
                 label: 'Vị trí',
                 value: _position,
-                options: const ['1', '2', '3', '4', '5', '6'],
+                optionKey: 'position',
                 onChanged: (value) => value != null ? setState(() => _position = value) : null,
               ),
               const SizedBox(height: 16),
@@ -384,7 +402,7 @@ class _JobEditScreenState extends State<JobEditScreen> {
               _buildDropdown(
                 label: 'Danh mục',
                 value: _category,
-                options: const ['IT', 'Marketing', 'Sales', 'Design', 'Finance', 'HR', 'Operations', 'Other'],
+                optionKey: 'category',
                 onChanged: (value) => value != null ? setState(() => _category = value) : null,
               ),
               const SizedBox(height: 16),
@@ -393,7 +411,7 @@ class _JobEditScreenState extends State<JobEditScreen> {
               _buildDropdown(
                 label: 'Trạng thái',
                 value: _status,
-                options: const ['active', 'draft', 'closed'],
+                optionKey: 'status',
                 onChanged: (value) => value != null ? setState(() => _status = value) : null,
               ),
               const SizedBox(height: 16),

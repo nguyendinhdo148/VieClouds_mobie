@@ -73,9 +73,10 @@ class _ResumeReviewScreenState extends State<ResumeReviewScreen> {
 
       // Thêm file
       request.files.add(
-        await http.MultipartFile.fromPath(
+        http.MultipartFile.fromBytes(
           'file',
-          _selectedFile!.path!,
+          _selectedFile!.bytes!,
+          filename: _selectedFile!.name,
         ),
       );
 

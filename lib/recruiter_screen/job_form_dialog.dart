@@ -526,8 +526,8 @@ class _JobFormDialogState extends State<JobFormDialog> {
                     Expanded(
                       child: _buildTextField(
                         controller: _salaryController,
-                        label: 'Lương (VNĐ)*',
-                        hintText: 'VD: 10000000',
+                        label: 'Lương (Triệu)*',
+                        hintText: 'VD: 10',
                         validator: (value) => _validateNumber(value, 'mức lương'),
                         keyboardType: TextInputType.number,
                       ),

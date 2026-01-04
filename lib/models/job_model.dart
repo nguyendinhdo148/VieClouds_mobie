@@ -152,9 +152,9 @@ class JobModel {
   String get formattedSalary {
     if (salary == 0) return 'Thương lượng';
     if (salary >= 1000000) {
-      return '${(salary / 1000000).toStringAsFixed(0)} triệu';
+      return '${(salary / 1000000).toStringAsFixed(0)} triệu VNĐ';
     }
-    return '${salary.toStringAsFixed(0)} VNĐ';
+    return '${salary.toStringAsFixed(0)} Triệu VNĐ';
   }
 
   /// Mức kinh nghiệm

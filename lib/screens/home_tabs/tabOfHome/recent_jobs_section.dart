@@ -24,6 +24,11 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
   final ApplicationService _applicationService = ApplicationService();
   List<ApplicationModel> _appliedJobs = [];
 
+  // Danh sách công việc đã lọc - chỉ hiển thị các công việc đang hoạt động
+  List<JobModel> get _filteredJobs {
+    return widget.jobs.where((job) => job.isActive).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -39,8 +44,7 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
     } catch (e) {
       print("Error loading applied jobs: $e");
     } finally {
-      setState(() {
-      });
+      setState(() {});
     }
   }
 
@@ -96,6 +100,11 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
 
   @override
   Widget build(BuildContext context) {
+    // Kiểm tra nếu không có công việc đang hoạt động
+    if (_filteredJobs.isEmpty) {
+      return _buildEmptyState();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -118,7 +127,7 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
                 'Xem tất cả',
                 style: _TextStyles.bodyMedium.copyWith(
                   color: const Color.fromARGB(255, 0, 59, 210),
-                  fontWeight: FontWeight.w700, // ĐẬM HƠN
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -131,7 +140,8 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
           height: 200,
           child: PageView.builder(
             controller: _jobPageController,
-            itemCount: (widget.jobs.length / 2).ceil(),
+            // Sử dụng _filteredJobs thay vì widget.jobs
+            itemCount: (_filteredJobs.length / 2).ceil(),
             onPageChanged: (page) {
               setState(() {
                 _currentJobPage = page;
@@ -140,16 +150,19 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
             itemBuilder: (context, pageIndex) {
               final startIndex = pageIndex * 2;
               final endIndex = startIndex + 2;
-              final jobs = widget.jobs.sublist(
+              final jobs = _filteredJobs.sublist(
                 startIndex,
-                endIndex < widget.jobs.length ? endIndex : widget.jobs.length,
+                endIndex < _filteredJobs.length
+                    ? endIndex
+                    : _filteredJobs.length,
               );
 
               return ListView(
                 physics: const NeverScrollableScrollPhysics(),
                 children: jobs
-                    .map((job) =>
-                        Padding(padding: const EdgeInsets.only(bottom: 8.0), child: _buildJobCard(job)))
+                    .map((job) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: _buildJobCard(job)))
                     .toList(),
               );
             },
@@ -157,16 +170,85 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
         ),
 
         const SizedBox(height: 12),
+        // Sử dụng _filteredJobs để tính toán số indicator
         _buildPageIndicator(),
       ],
     );
   }
 
+  Widget _buildEmptyState() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Công việc mới nhất', style: _TextStyles.displayMedium),
+            TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) =>
+                        const FindJobScreen(initialSearch: '')),
+              ),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+              ),
+              child: Text(
+                'Xem tất cả',
+                style: _TextStyles.bodyMedium.copyWith(
+                  color: const Color.fromARGB(255, 0, 59, 210),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.work_off,
+                  size: 48,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Hiện không có công việc nào đang tuyển',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPageIndicator() {
+    // Tính toán số trang dựa trên _filteredJobs
+    final pageCount = (_filteredJobs.length / 2).ceil();
+    
+    // Chỉ hiển thị indicator nếu có nhiều hơn 1 trang
+    if (pageCount <= 1) return const SizedBox.shrink();
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
-        (widget.jobs.length / 2).ceil(),
+        pageCount,
         (index) => Container(
           width: 8,
           height: 8,
@@ -183,6 +265,7 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
   }
 
   Widget _buildJobCard(JobModel job) {
+    // Vì đã lọc nên job.isActive luôn là true
     return GestureDetector(
       onTap: () {
         _showJobDetail(job);
@@ -228,14 +311,14 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
                 children: [
                   Text(job.title,
                       style: _TextStyles.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w700), // ĐẬM HƠN
+                          fontWeight: FontWeight.w700),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
                   Text(job.companyName,
                       style: _TextStyles.bodySmall.copyWith(
                         color: _PastelColors.grey,
-                        fontWeight: FontWeight.w600, // ĐẬM HƠN
+                        fontWeight: FontWeight.w600,
                       )),
                   const SizedBox(height: 6),
 
@@ -247,7 +330,7 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
                       Expanded(
                         child: Text(job.location,
                             style: _TextStyles.caption.copyWith(
-                              fontWeight: FontWeight.w600, // ĐẬM HƠN
+                              fontWeight: FontWeight.w600,
                             ),
                             overflow: TextOverflow.ellipsis),
                       ),
@@ -261,10 +344,10 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
                       Icon(Icons.attach_money,
                           size: 12, color: _PastelColors.accent),
                       const SizedBox(width: 4),
-                      Text(job.formattedSalary, 
+                      Text(job.formattedSalary,
                           style: _TextStyles.caption.copyWith(
-                            fontWeight: FontWeight.w700, // ĐẬM HƠN
-                            color: Colors.green[700], // MÀU XANH ĐẬM ĐỂ NỔI BẬT
+                            fontWeight: FontWeight.w700,
+                            color: Colors.green[700],
                           )),
                     ],
                   ),
@@ -276,21 +359,17 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: job.isActive
-                        ? _PastelColors.yellow.withOpacity(0.15)
-                        : Colors.grey.withOpacity(0.1),
+                    color: Colors.green.withOpacity(0.15), // Luôn là xanh vì chỉ hiển thị công việc đang tuyển
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    job.isActive ? 'Đang tuyển' : 'Đã đóng',
+                    'Đang tuyển', // Luôn hiển thị "Đang tuyển" vì đã lọc
                     style: _TextStyles.caption.copyWith(
-                      fontWeight: FontWeight.w700, // ĐẬM HƠN
-                      color: job.isActive
-                          ? Colors.green[700] // MÀU XANH ĐẬM CHO "ĐANG TUYỂN"
-                          : Colors.grey[700], // MÀU XÁM ĐẬM CHO "ĐÃ ĐÓNG"
+                      fontWeight: FontWeight.w700,
+                      color: Colors.green[700],
                     ),
                   ),
                 ),
@@ -298,7 +377,7 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
                 Text(job.timeAgo,
                     style: _TextStyles.caption.copyWith(
                       fontSize: 10,
-                      fontWeight: FontWeight.w600, // ĐẬM HƠN
+                      fontWeight: FontWeight.w600,
                     )),
               ],
             ),
@@ -316,20 +395,23 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(job.title, style: const TextStyle(
-          fontWeight: FontWeight.w700, // ĐẬM HƠN
-          fontSize: 18,
-        )),
-        content: SizedBox(width: double.maxFinite, child: JobDescriptionSection(job: job)),
+        title: Text(job.title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            )),
+        content: SizedBox(
+            width: double.maxFinite,
+            child: JobDescriptionSection(job: job)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng', style: TextStyle(
-              color: Colors.grey,
-              fontWeight: FontWeight.w600, // ĐẬM HƠN
-            )),
+            child: const Text('Đóng',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                )),
           ),
-
           ElevatedButton(
             onPressed: canApply
                 ? () {
@@ -340,10 +422,11 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
             style: ElevatedButton.styleFrom(
               backgroundColor: buttonColor,
             ),
-            child: Text(buttonText, style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700, // ĐẬM HƠN
-            )),
+            child: Text(buttonText,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                )),
           ),
         ],
       ),
@@ -354,21 +437,23 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xác nhận ứng tuyển', style: TextStyle(
-          fontWeight: FontWeight.w700, // ĐẬM HƠN
-          fontSize: 16,
-        )),
+        title: const Text('Xác nhận ứng tuyển',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            )),
         content: Text("Bạn có chắc muốn ứng tuyển vào ${job.title}?",
-          style: const TextStyle(
-            fontWeight: FontWeight.w600, // ĐẬM HƠN
-          )),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+            )),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy', style: TextStyle(
-              color: Colors.grey,
-              fontWeight: FontWeight.w600, // ĐẬM HƠN
-            )),
+            child: const Text('Hủy',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                )),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -378,10 +463,11 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
             ),
-            child: const Text('Xác nhận ứng tuyển', style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700, // ĐẬM HƠN
-            )),
+            child: const Text('Xác nhận ứng tuyển',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                )),
           ),
         ],
       ),
@@ -400,9 +486,9 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result['message'] ?? 'Ứng tuyển thất bại',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600, // ĐẬM HƠN
-              )),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                )),
             backgroundColor: Colors.red,
           ),
         );
@@ -416,9 +502,9 @@ class _RecentJobsSectionState extends State<RecentJobsSection> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Ứng tuyển thành công!',
-          style: TextStyle(
-            fontWeight: FontWeight.w700, // ĐẬM HƠN
-          )),
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+            )),
         backgroundColor: Colors.green,
       ),
     );
@@ -438,25 +524,25 @@ class _PastelColors {
 class _TextStyles {
   static final TextStyle displayMedium = TextStyle(
     fontSize: 18,
-    fontWeight: FontWeight.w800, // ĐẬM HƠN (từ 700 lên 800)
+    fontWeight: FontWeight.w800,
     color: _PastelColors.dark,
   );
 
   static final TextStyle bodyMedium = TextStyle(
     fontSize: 14,
     color: _PastelColors.dark,
-    fontWeight: FontWeight.w600, // THÊM ĐẬM
+    fontWeight: FontWeight.w600,
   );
 
   static final TextStyle bodySmall = TextStyle(
     fontSize: 12,
     color: _PastelColors.grey,
-    fontWeight: FontWeight.w500, // THÊM ĐẬM
+    fontWeight: FontWeight.w500,
   );
 
   static final TextStyle caption = TextStyle(
     fontSize: 11,
     color: _PastelColors.grey,
-    fontWeight: FontWeight.w500, // THÊM ĐẬM
+    fontWeight: FontWeight.w500,
   );
 }
